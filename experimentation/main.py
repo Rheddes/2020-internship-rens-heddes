@@ -37,6 +37,7 @@ def edges_in_paths_from_to(G, source, target):
 
 def cascaded_risk_of_path(G, severity, path):
     impacts = nx.get_edge_attributes(G, 'impact')
+    # Impact in this scenario refers to the impact such as described in the FASTEN deliverable.
     return severity * prod([impacts[edge] for edge in path])
 
 
