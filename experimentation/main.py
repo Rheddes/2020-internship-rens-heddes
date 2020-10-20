@@ -1,5 +1,6 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+from math import prod
 
 
 def make_graph():
@@ -30,20 +31,31 @@ def make_graph():
     return G
 
 
+def edges_in_paths_from_to(G, source, target):
+    return map(nx.utils.pairwise, nx.all_simple_paths(G, source=source, target=target))
+
+
+def cascaded_risk_of_path(G, severity, path):
+    impacts = nx.get_edge_attributes(G, 'impact')
+    return severity * prod([impacts[edge] for edge in path])
+
+
+def cumulative_dependency_risk(G, vulnerable_method, severity, application):
+    return sum([
+        cascaded_risk_of_path(G, severity, path) for path in edges_in_paths_from_to(G, application, vulnerable_method)
+    ])
+
+
+def combined_cumulative_dependency_risk(G, severities):
+    return sum([
+        cumulative_dependency_risk(G, vulnerable_method, severity, 'App') for vulnerable_method, severity in severities.items()
+    ])
+
+
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    G = make_graph()
-    impacts = nx.get_edge_attributes(G, 'impact')
-    severities = nx.get_node_attributes(G, 'severity')
-    combined_risk = 0
-    for vulnerable_method in severities.keys():
-        print(vulnerable_method)
-        cumulative_dependency_risk = 0
-        for path in map(nx.utils.pairwise, nx.all_simple_paths(G, source='App', target=vulnerable_method)):
-            cascaded_risk = severities[vulnerable_method]
-            for edge in path:
-                cascaded_risk *= impacts[edge]
-            cumulative_dependency_risk += cascaded_risk
-        print('Cumulative isk for method: {}, is {}'.format(vulnerable_method, cumulative_dependency_risk))
-        combined_risk += cumulative_dependency_risk
-    print('Total risk for application: {}'.format(combined_risk))
+    call_graph = make_graph()
+    print('Total risk for application: {}'.format(combined_cumulative_dependency_risk(
+        call_graph,
+        nx.get_node_attributes(call_graph, 'severity')
+    )))
