@@ -1,6 +1,5 @@
 import json
-import os.path
-from handlers.handler import Handler
+from v1.handlers.handler import Handler
 
 
 class FileInput(Handler):

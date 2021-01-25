@@ -1,5 +1,5 @@
 import networkx as nx
-from handlers.handler import Handler
+from v1.handlers.handler import Handler
 
 
 class ConstructGraph(Handler):

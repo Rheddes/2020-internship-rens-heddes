@@ -1,6 +1,6 @@
 from math import prod
 from networkx import Graph, nx
-from handlers.handler import Handler
+from v1.handlers.handler import Handler
 
 
 class RiskEngine(Handler):
