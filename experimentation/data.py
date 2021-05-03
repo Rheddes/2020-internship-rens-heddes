@@ -20,10 +20,12 @@ def _connect_mongo(host, port, username, password, db):
     return conn[db]
 
 
-def read_mongo(db, collection, query={}, host='localhost', port=27017, username=None, password=None, no_id=True):
+def read_mongo(db, collection, query=None, host='localhost', port=27017, username=None, password=None, no_id=True):
     """ Read from Mongo and Store into DataFrame """
 
     # Connect to MongoDB
+    if query is None:
+        query = {}
     db = _connect_mongo(host=host, port=port, username=username, password=password, db=db)
 
     # Make a query to the specific DB and Collection
@@ -41,15 +43,89 @@ def read_mongo(db, collection, query={}, host='localhost', port=27017, username=
 
 if __name__ == '__main__':
     cves = read_mongo('NVD', 'CVE')
-    scores = cves['impact.baseMetricV3.cvssV3.baseScore']
-    scores.plot.density()
+    scores = cves['impact.baseMetricV2.cvssV2.baseScore']
+    density_graph = scores.plot.density()
+    density_graph.set(xlim=(0, 10), ylim=(0, 1))
+    density_graph.set_xlabel("CVSS (v2) score")
+    density_graph.set_ylabel("Density")
     plt.show()
-    print(cves['impact.baseMetricV3.cvssV3.baseScore'])
-    sns.ecdfplot(data=cves, x="impact.baseMetricV3.cvssV3.baseScore")
+    print(cves['impact.baseMetricV2.cvssV2.baseScore'])
+    g = sns.ecdfplot(data=cves, x="impact.baseMetricV2.cvssV2.baseScore")
+    g.set(xlim=(0, 10), ylim=(0, 1))
+    g.set_xlabel("CVSS (v2) score")
+    g.set_ylabel("Cumulative distribution")
     plt.show()
-    print('70% quantile----------')
-    print(cves.quantile(0.7))
-    print('80% quantile----------')
-    print(cves.quantile(0.8))
-    print('90% quantile----------')
-    print(cves.quantile(0.9))
+    print('25% quantile----------')
+    print(cves.quantile(0.25))
+    print('50% quantile----------')
+    print(cves.quantile(0.5))
+    print('75% quantile----------')
+    print(cves.quantile(0.75))
+
+# DATA FROM: 2015-2020
+# /Users/rheddes/Development/2020-internship-rens-heddes/experimentation/venv/bin/python /Users/rheddes/Development/2020-internship-rens-heddes/experimentation/data.py
+# 0         2.1
+# 1         9.3
+# 2         3.7
+# 3         4.3
+# 4         7.2
+#          ...
+# 83074     5.8
+# 83075     5.8
+# 83076     4.3
+# 83077    10.0
+# 83078     5.0
+# Name: impact.baseMetricV2.cvssV2.baseScore, Length: 83079, dtype: float64
+# 70% quantile----------
+# impact.baseMetricV3.cvssV3.baseScore        7.8
+# impact.baseMetricV3.exploitabilityScore     3.9
+# impact.baseMetricV3.impactScore             5.9
+# impact.baseMetricV2.cvssV2.baseScore        6.8
+# impact.baseMetricV2.exploitabilityScore    10.0
+# impact.baseMetricV2.impactScore             6.4
+# Name: 0.7, dtype: float64
+# 80% quantile----------
+# impact.baseMetricV3.cvssV3.baseScore        8.8
+# impact.baseMetricV3.exploitabilityScore     3.9
+# impact.baseMetricV3.impactScore             5.9
+# impact.baseMetricV2.cvssV2.baseScore        7.5
+# impact.baseMetricV2.exploitabilityScore    10.0
+# impact.baseMetricV2.impactScore             6.9
+# Name: 0.8, dtype: float64
+# 90% quantile----------
+# impact.baseMetricV3.cvssV3.baseScore        9.8
+# impact.baseMetricV3.exploitabilityScore     3.9
+# impact.baseMetricV3.impactScore             5.9
+# impact.baseMetricV2.cvssV2.baseScore        9.0
+# impact.baseMetricV2.exploitabilityScore    10.0
+# impact.baseMetricV2.impactScore            10.0
+# Name: 0.9, dtype: float64
+
+
+
+
+
+# 25% quantile----------
+# impact.baseMetricV3.cvssV3.baseScore       6.1
+# impact.baseMetricV3.exploitabilityScore    1.8
+# impact.baseMetricV3.impactScore            3.6
+# impact.baseMetricV2.cvssV2.baseScore       4.3
+# impact.baseMetricV2.exploitabilityScore    6.8
+# impact.baseMetricV2.impactScore            2.9
+# Name: 0.25, dtype: float64
+# 50% quantile----------
+# impact.baseMetricV3.cvssV3.baseScore       7.5
+# impact.baseMetricV3.exploitabilityScore    2.8
+# impact.baseMetricV3.impactScore            3.6
+# impact.baseMetricV2.cvssV2.baseScore       5.0
+# impact.baseMetricV2.exploitabilityScore    8.6
+# impact.baseMetricV2.impactScore            4.9
+# Name: 0.5, dtype: float64
+# 75% quantile----------
+# impact.baseMetricV3.cvssV3.baseScore        8.8
+# impact.baseMetricV3.exploitabilityScore     3.9
+# impact.baseMetricV3.impactScore             5.9
+# impact.baseMetricV2.cvssV2.baseScore        7.2
+# impact.baseMetricV2.exploitabilityScore    10.0
+# impact.baseMetricV2.impactScore             6.4
+# Name: 0.75, dtype: float64
