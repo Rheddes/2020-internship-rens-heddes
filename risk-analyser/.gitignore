@@ -7,6 +7,7 @@ libraries.http
 *.env.json
 .env
 .idea
+vulnerable
 
 
 .idea/

@@ -1,24 +1,30 @@
+from __future__ import annotations
 import itertools
 import json
 import logging
+import numbers
 from datetime import datetime
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 import ijson as ijson
 import jgrapht
 import jgrapht.algorithms.shortestpaths as sp
+import networkx as nx
 from jgrapht.algorithms import scoring
 from jgrapht.types import Graph
 import pandas as pd
+from networkx import DiGraph
+
+import config
 
 
-def parse_JSON_file(filename: str) -> Tuple[List, List, pd.DataFrame]:
+def parse_JSON_file(filename: str) -> Tuple[List, List, Dict, pd.DataFrame]:
 
     start_time = datetime.now()
 
     data_rows = []
     node_ids = []
-
+    vulnerabilities = {}
     with open(filename) as f:
         objects = ijson.items(f, 'nodes.item')
 
@@ -32,18 +38,22 @@ def parse_JSON_file(filename: str) -> Tuple[List, List, pd.DataFrame]:
 
             score_v2 = None
             score_v3 = None
+            no_vulnerabilities = 0
             if has_vulnerabilities:
+                vulnerabilities[node_id] = q_dict['vulnerabilities']
+                no_vulnerabilities = len(q_dict['vulnerabilities'].values())
                 max_score_v2 = 0.0
                 max_score_v3 = 0.0
                 for vulnerability in q_dict['vulnerabilities'].values():
-                    if type(vulnerability['scoreCVSS3']) == int or float:
+                    if 'scoreCVSS3' in vulnerability and isinstance(vulnerability['scoreCVSS3'], numbers.Number):
                         max_score_v3 = max(max_score_v3, vulnerability.get('scoreCVSS3'), 0.0)
-                    max_score_v2 = max(max_score_v2, vulnerability.get('scoreCVSS2'), 0.0)
+                    if 'scoreCVSS2' in vulnerability and isinstance(vulnerability['scoreCVSS2'], numbers.Number):
+                        max_score_v2 = max(max_score_v2, vulnerability.get('scoreCVSS2'), 0.0)
                 score_v2 = max_score_v2
                 score_v3 = max_score_v3
 
-            data_rows.append([node_id, o['application_node'], o['uri'], score_v2, score_v3])
-        df = pd.DataFrame(data_rows, columns=['id', 'application_node', 'uri', 'cvss_v2', 'cvss_v3'])
+            data_rows.append([node_id, o['application_node'], o['uri'], score_v2, score_v3, no_vulnerabilities])
+        df = pd.DataFrame(data_rows, columns=['id', 'application_node', 'uri', 'cvss_v2', 'cvss_v3', 'number_of_vulnerabilities'])
 
         f.seek(0)
         e_objects = ijson.items(f, 'edges.item')
@@ -57,7 +67,7 @@ def parse_JSON_file(filename: str) -> Tuple[List, List, pd.DataFrame]:
 
     logging.info("Parsed JSON into DataFrame, elapsed time = %s", str(datetime.now() - start_time))
 
-    return node_ids, edges, df
+    return node_ids, edges, vulnerabilities, df
 
 
 def create_graphs(node_ids, edges) -> Tuple[Graph, Graph, pd.DataFrame]:
@@ -113,10 +123,60 @@ def calculate_centrality_measures(call_graph, reverse_graph, node_list: list) ->
     return df
 
 
-def get_total_vulnerability_coverage(reverse_graph: Graph, vulnerable_nodes: list, application_nodes: list) -> list:
-    reachable_nodes = set()
-    for source, target in itertools.product(vulnerable_nodes, application_nodes):
+def get_total_vulnerability_coverage(reverse_graph: Graph, vulnerable_nodes: dict, application_nodes: list) -> dict:
+    reachable_nodes = {}
+    for source, target in itertools.product(vulnerable_nodes.keys(), application_nodes):
         path = sp.dijkstra(reverse_graph, source, target)
         if path is not None:
-            reachable_nodes.update({target})
-    return list(reachable_nodes)
+            if target not in reachable_nodes:
+                reachable_nodes[target] = {}
+            reachable_nodes[target] = {**reachable_nodes[target], **vulnerable_nodes[source]}
+    return reachable_nodes
+
+
+class EnrichedCallGraph(DiGraph):
+    def __init__(self, **attr):
+        self._reachable_by_cache = {}
+        super().__init__(**attr)
+
+    @staticmethod
+    def create(nodes: list, edges: list, vulnerable_nodes: dict) -> EnrichedCallGraph:
+        nx_graph = EnrichedCallGraph()
+        for node_id in nodes:
+            nx_graph.add_node(node_id)
+        nx_graph.add_edges_from(edges)
+        nx_graph.remove_edges_from(nx.selfloop_edges(nx_graph))
+        for node_id, vulnerabilities in vulnerable_nodes.items():
+            for cve, vulnerability in vulnerabilities.items():
+                if config.CVSS_SCORE_VERSION in vulnerability:
+                    nx_graph.add_vulnerability(node_id, vulnerability[config.CVSS_SCORE_VERSION], cve)
+        return nx_graph
+
+    def add_node(self, node_for_adding, **attr):
+        super().add_node(node_for_adding, **attr)
+        self.nodes[node_for_adding]['metadata'] = {'vulnerabilities': {}}
+
+    def add_vulnerability(self, node_with_vulnerability, cvss_score, cve_id):
+        if 'vulnerabilities' not in self.nodes[node_with_vulnerability]['metadata']:
+            self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'] = {}
+        self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'][cve_id] = {
+            config.CVSS_SCORE_VERSION: cvss_score
+        }
+
+    def remove_vulnerability(self, node_with_vulnerability, cve=None):
+        if cve:
+            del self.nodes[node_with_vulnerability]['metadata']['vulnerabilities']['cve']
+        self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'] = {}
+
+    def get_severity_scores_for(self, node):
+        if self.has_vulnerability(node):
+            return [cve[config.CVSS_SCORE_VERSION] for cve in self.nodes[node]['metadata']['vulnerabilities'].values()]
+        return [0.0]
+
+    def has_vulnerability(self, node):
+        return len(self.nodes[node]['metadata']['vulnerabilities']) > 0
+
+    def reachable_by(self, n):
+        if n not in self._reachable_by_cache:
+            self._reachable_by_cache[n] = set(nx.predecessor(self, n).keys()) - {n}
+        return self._reachable_by_cache[n]
