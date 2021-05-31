@@ -1,0 +1,10 @@
+<plugin>
+    <groupId>eu.sig.fasten</groupId>
+    <artifactId>rapid-maven-plugin</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <extensions>true</extensions>
+    <configuration>
+<!--      <fastenApiUrl>https://api.fasten-project.eu/api</fastenApiUrl>-->
+      <fastenApiUrl>http://research-fasten:9001</fastenApiUrl>
+    </configuration>
+</plugin>
