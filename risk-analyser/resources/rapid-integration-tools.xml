@@ -5,6 +5,6 @@
     <extensions>true</extensions>
     <configuration>
 <!--      <fastenApiUrl>https://api.fasten-project.eu/api</fastenApiUrl>-->
-      <fastenApiUrl>http://research-fasten:9001</fastenApiUrl>
+      <fastenApiUrl>http://research-fasten:9001/api</fastenApiUrl>
     </configuration>
 </plugin>
