@@ -10,7 +10,7 @@ from git import Repo
 
 import config
 from config import BASE_DIR
-from utils.graph import RiskGraph, parse_JSON_file, _combine_scores
+from risk_engine.graph import RiskGraph, parse_JSON_file, _combine_scores
 from utils.vcs import clone_repository
 import xml.etree.ElementTree as ET
 import subprocess

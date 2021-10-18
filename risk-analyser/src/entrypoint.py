@@ -43,5 +43,5 @@ def main():
 
 if __name__ == '__main__':
     logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'repository_scan.log'), level=logging.DEBUG,
-                        filemode='w')
+                        filemode='w+')
     main()
