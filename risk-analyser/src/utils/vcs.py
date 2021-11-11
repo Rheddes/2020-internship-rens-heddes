@@ -25,7 +25,7 @@ def clone_repository(project_full_name):
     repo_path = CLONE_DIR + '/' + project_full_name[project_full_name.index('/'):]
     if os.path.exists(repo_path):
         rm_r(repo_path)
-    Git(CLONE_DIR).clone('git://github.com/{}.git'.format(project_full_name))
+    Git(CLONE_DIR).clone('https://github.com/{}.git'.format(project_full_name))
     return Repo(repo_path)
 
 

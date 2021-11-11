@@ -14,34 +14,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 
-
-def forest_fire_traversal(graph: RiskGraph, source, size):
-    list_nodes = list(graph.nodes())
-
-    visited = set()
-    queue = [source]
-    while len(visited) < size:
-        if queue:
-            v = queue.pop()
-            if v not in visited:
-                visited.add(v)
-                neighbors = list(graph.neighbors(v))
-                if neighbors:
-                    np = random.randint(1, len(neighbors))
-                    [queue.append(selected_neighbor) for selected_neighbor in neighbors[:np]]
-        else:
-            # random_node = random.sample(set(list_nodes) and visited, 1)[0]
-            random_node = random.sample(set(list_nodes), 1)[0]
-            queue.append(random_node)
-    queue.clear()
-    return visited
-
-
-def ff_sample_subgraph(graph: RiskGraph, source_node, size):
-    node_set_prev = forest_fire_traversal(graph.reverse(), source_node, round(size/2))
-    node_set_aft = forest_fire_traversal(graph, source_node, round(size/2))
-    return graph.sub_graph_from_node_set(node_set_prev.union(node_set_aft))
-
+from utils.graph_sampling import forest_fire_traversal
 
 if __name__ == '__main__':
     enriched_graph = RiskGraph.create(*parse_JSON_file(os.path.join(config.BASE_DIR, 'repos', 'webtau', 'target', 'callgraphs', 'org.testingisdocumenting.webtau.webtau-cache-1.23-SNAPSHOT-reduced.json')), auto_update=False)
@@ -113,7 +86,7 @@ if __name__ == '__main__':
     sub_graph.reset_cache()
     sub_graph.centrality_score_function = lambda x: coreachability[x] / sum(coreachability.values())
     sub_graph.propagation_function = lambda x: sum(x)
-    risks = {k: sub_graph.get_intrinsic_risk_for(k) for k in sub_graph.get_vulnerable_nodes().keys()}
+    risks = {k: sub_graph.get_inherent_risk_for(k) for k in sub_graph.get_vulnerable_nodes().keys()}
     sub_graph.draw(title='Model A - Risk {:.2f}'.format(sum(list(risks.values()))), legend=True, cvss_table=False, legend_outside=False)
     plt.savefig(os.path.join(config.BASE_DIR, 'src', 'plots', 'model-a.pdf'))
     plt.show()
@@ -122,7 +95,7 @@ if __name__ == '__main__':
     sub_graph.reset_cache()
     sub_graph.centrality_score_function = lambda x: coreachability[x] / max(coreachability.values())
     sub_graph.propagation_function = _combine_scores
-    risks = {k: sub_graph.get_intrinsic_risk_for(k) for k in sub_graph.get_vulnerable_nodes().keys()}
+    risks = {k: sub_graph.get_inherent_risk_for(k) for k in sub_graph.get_vulnerable_nodes().keys()}
     sub_graph.draw(title='Model B - Risk {:.2f}'.format(_combine_scores(list(risks.values()))), legend=True, cvss_table=False, legend_outside=False)
     plt.savefig(os.path.join(config.BASE_DIR, 'src', 'plots', 'model-b.pdf'))
     plt.show()
@@ -131,7 +104,7 @@ if __name__ == '__main__':
     sub_graph.reset_cache()
     sub_graph.centrality_score_function = lambda x: betweenness[x] / sum(betweenness.values())
     sub_graph.propagation_function = lambda x: sum(x)
-    risks = {k: sub_graph.get_intrinsic_risk_for(k) for k in sub_graph.get_vulnerable_nodes().keys()}
+    risks = {k: sub_graph.get_inherent_risk_for(k) for k in sub_graph.get_vulnerable_nodes().keys()}
     sub_graph.draw(title='Model C - Risk {:.2f}'.format(sum(list(risks.values()))), legend=True, cvss_table=False, legend_outside=False)
     plt.savefig(os.path.join(config.BASE_DIR, 'src', 'plots', 'model-c.pdf'))
     plt.show()
@@ -140,7 +113,7 @@ if __name__ == '__main__':
     sub_graph.reset_cache()
     sub_graph.centrality_score_function = lambda x: betweenness[x] / max(betweenness.values())
     sub_graph.propagation_function = _combine_scores
-    risks = {k: sub_graph.get_intrinsic_risk_for(k) for k in sub_graph.get_vulnerable_nodes().keys()}
+    risks = {k: sub_graph.get_inherent_risk_for(k) for k in sub_graph.get_vulnerable_nodes().keys()}
     sub_graph.draw(title='Model D - Risk {:.2f}'.format(_combine_scores(list(risks.values()))), legend=True, cvss_table=False, legend_outside=False)
     plt.savefig(os.path.join(config.BASE_DIR, 'src', 'plots', 'model-d.pdf'))
     plt.show()

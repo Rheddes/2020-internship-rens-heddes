@@ -90,19 +90,19 @@ def _calculate_risk(repo_name, repo_path):
         risks = {}
         enriched_graph.centrality_score_function = lambda x: normalised_coreachability[x]
         enriched_graph.propagation_function = lambda x: sum(x)
-        risks['A'] = enriched_graph.propagation_function([enriched_graph.get_intrinsic_risk_for(k) for k in enriched_graph.get_vulnerable_nodes().keys()])
+        risks['A'] = enriched_graph.propagation_function([enriched_graph.get_inherent_risk_for(k) for k in enriched_graph.get_vulnerable_nodes().keys()])
         enriched_graph.reset_cache()
         enriched_graph.centrality_score_function = lambda x: relative_coreachability[x]
         enriched_graph.propagation_function = _combine_scores
-        risks['B'] = enriched_graph.propagation_function([enriched_graph.get_intrinsic_risk_for(k) for k in enriched_graph.get_vulnerable_nodes().keys()])
+        risks['B'] = enriched_graph.propagation_function([enriched_graph.get_inherent_risk_for(k) for k in enriched_graph.get_vulnerable_nodes().keys()])
         enriched_graph.reset_cache()
         enriched_graph.centrality_score_function = lambda x: normalised_betweenness[x]
         enriched_graph.propagation_function = lambda x: sum(x)
-        risks['C'] = enriched_graph.propagation_function([enriched_graph.get_intrinsic_risk_for(k) for k in enriched_graph.get_vulnerable_nodes().keys()])
+        risks['C'] = enriched_graph.propagation_function([enriched_graph.get_inherent_risk_for(k) for k in enriched_graph.get_vulnerable_nodes().keys()])
         enriched_graph.reset_cache()
         enriched_graph.centrality_score_function = lambda x: relative_betweenness[x]
         enriched_graph.propagation_function = _combine_scores
-        risks['D'] = enriched_graph.propagation_function([enriched_graph.get_intrinsic_risk_for(k) for k in enriched_graph.get_vulnerable_nodes().keys()])
+        risks['D'] = enriched_graph.propagation_function([enriched_graph.get_inherent_risk_for(k) for k in enriched_graph.get_vulnerable_nodes().keys()])
 
         logging.info('Calculated centralities, elapsed time = %s', str(datetime.now() - start_time))
 
@@ -137,5 +137,6 @@ class RepoAnalyser:
 
             _add_rapid_plugin_to_pom(os.path.join(repo.working_dir, self.pom_path))
             _generate_call_graphs(repo.working_dir, self.pom_path)
-        return _calculate_risk(repo_short_name, repo.working_dir)
+        return {}
+        # return _calculate_risk(repo_short_name, repo.working_dir)
 

@@ -9,7 +9,7 @@ import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
 import numbers
 from datetime import datetime
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Set
 
 import ijson as ijson
 import jgrapht
@@ -20,18 +20,21 @@ from jgrapht.types import Graph
 import pandas as pd
 from networkx import DiGraph
 from texttable import Texttable
+from cvss import CVSS3
+from cvss.cvss3 import round_up
 import numpy as np
 
 import config
 
 
-def parse_JSON_file(filename: str) -> Tuple[List, List, Dict, pd.DataFrame]:
+def parse_JSON_file(filename: str) -> Tuple[List, List, Dict, pd.DataFrame, Set]:
 
     start_time = datetime.now()
 
     data_rows = []
     node_ids = []
-    vulnerabilities = {}
+    vulnerable_nodes = {}
+    vulnerabilities = set()
     with open(filename) as f:
         objects = ijson.items(f, 'nodes.item')
 
@@ -47,11 +50,13 @@ def parse_JSON_file(filename: str) -> Tuple[List, List, Dict, pd.DataFrame]:
             score_v3 = None
             no_vulnerabilities = 0
             if has_vulnerabilities:
-                vulnerabilities[node_id] = q_dict['vulnerabilities']
+                vulnerable_nodes[node_id] = q_dict['vulnerabilities']
                 no_vulnerabilities = len(q_dict['vulnerabilities'].values())
                 max_score_v2 = 0.0
                 max_score_v3 = 0.0
-                for vulnerability in q_dict['vulnerabilities'].values():
+                for id, vulnerability in q_dict['vulnerabilities'].items():
+                    if id not in vulnerabilities:
+                        vulnerabilities.add(id)
                     if 'scoreCVSS3' in vulnerability and isinstance(vulnerability['scoreCVSS3'], numbers.Number):
                         max_score_v3 = max(max_score_v3, vulnerability.get('scoreCVSS3'), 0.0)
                     if 'scoreCVSS2' in vulnerability and isinstance(vulnerability['scoreCVSS2'], numbers.Number):
@@ -74,7 +79,7 @@ def parse_JSON_file(filename: str) -> Tuple[List, List, Dict, pd.DataFrame]:
 
     logging.info('Parsed JSON into DataFrame, elapsed time = %s', str(datetime.now() - start_time))
 
-    return node_ids, edges, vulnerabilities, df
+    return node_ids, edges, vulnerable_nodes, df, vulnerabilities
 
 
 def create_graphs(node_ids, edges) -> Tuple[Graph, Graph, pd.DataFrame]:
@@ -174,7 +179,7 @@ class RiskGraph(DiGraph):
         super().__init__(**attr)
 
     @staticmethod
-    def create(nodes: list, edges: list, vulnerable_nodes: dict, metadata: pd.DataFrame, auto_update=True) -> RiskGraph:
+    def create(nodes: list, edges: list, vulnerable_nodes: dict, metadata: pd.DataFrame, vulnerabilities=None, auto_update=True) -> RiskGraph:
         nx_graph = RiskGraph()
         nx_graph._auto_update = auto_update
         for node_id in nodes:
@@ -182,9 +187,10 @@ class RiskGraph(DiGraph):
         nx_graph.add_edges_from(edges)
         nx_graph.remove_edges_from(nx.selfloop_edges(nx_graph))
         for node_id, vulnerabilities in vulnerable_nodes.items():
-            for cve, vulnerability in vulnerabilities.items():
-                if config.CVSS_SCORE_VERSION in vulnerability:
-                    nx_graph.add_vulnerability(node_id, vulnerability[config.CVSS_SCORE_VERSION], cve)
+            nx_graph.add_vulnerabilities(node_id, vulnerabilities)
+            # for cve, vulnerability in vulnerabilities.items():
+            #     if config.CVSS_SCORE_VERSION in vulnerability:
+            #         nx_graph.add_vulnerability(node_id, vulnerability[config.CVSS_SCORE_VERSION], cve)
         if auto_update:
             nx_graph.configure_for_model(nx_graph._model)
         return nx_graph
@@ -224,6 +230,13 @@ class RiskGraph(DiGraph):
         if self._auto_update:
             self.configure_for_model(self._model)
 
+    def get_vulnerabilities(self):
+        vulnerabilities = {}
+        for node, attributes in self.get_vulnerable_nodes().items():
+            for vulnerability in attributes['metadata']['vulnerabilities'].keys():
+                vulnerabilities[vulnerability] = vulnerabilities.get(vulnerability, []) + [node]
+        return vulnerabilities
+
     def add_vulnerability(self, node_with_vulnerability, cvss_score, cve_id):
         if 'vulnerabilities' not in self.nodes[node_with_vulnerability]['metadata']:
             self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'] = {}
@@ -241,21 +254,26 @@ class RiskGraph(DiGraph):
         if self._auto_update:
             self.configure_for_model(self._model)
 
-    def remove_vulnerability(self, node_with_vulnerability, cve=None):
+    def remove_vulnerability_from_node(self, node_with_vulnerability, cve=None):
         if cve:
             del self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'][cve]
-        self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'] = {}
+        else:
+            self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'] = {}
         if self._auto_update:
             self.configure_for_model(self._model)
 
+    def remove_vulnerability(self, cve):
+        for node in self.get_vulnerabilities().get(cve, []):
+            self.remove_vulnerability_from_node(node, cve)
+
     def get_severity_scores_for(self, node):
-        return [cve[config.CVSS_SCORE_VERSION] for cve in self.nodes[node]['metadata']['vulnerabilities'].values()]
+        return {cve['id']: cve[config.CVSS_SCORE_VERSION] for cve in self.nodes[node]['metadata']['vulnerabilities'].values()}
 
-    def get_intrinsic_risk_for(self, node):
-        return self.cvss_combination_function(self.get_severity_scores_for(node)) * self.centrality_score_function(node)
+    def get_impact_scores_for(self, node):
+        return {cve['id']: float(round_up(CVSS3(cve['vectorCVSS3']).isc)) if 'vectorCVSS3' in cve else None for cve in self.nodes[node]['metadata']['vulnerabilities'].values()}
 
-    def _get_risk(self):
-        return self.propagation_function([self.get_intrinsic_risk_for(node) for node in self.get_vulnerable_nodes().keys()])
+    def get_inherent_risk_for(self, node):
+        return self.cvss_combination_function(list(self.get_severity_scores_for(node).values())) * self.centrality_score_function(node)
 
     def reset_cache(self):
         self._reachable_by_cache = {}
@@ -264,11 +282,11 @@ class RiskGraph(DiGraph):
 
     def get_propagated_risk_for(self, node, use_cache=True):
         if not use_cache or node not in self._propagated_risk_cache:
-            self._propagated_risk_cache[node] = self.propagation_function([self.get_intrinsic_risk_for(n) for n in {*self.reachable_by(node, use_cache), *{node}}])
+            self._propagated_risk_cache[node] = self.propagation_function([self.get_inherent_risk_for(n) for n in {*self.reachable_by(node, use_cache), *{node}}])
         return self._propagated_risk_cache[node]
 
     def get_app_risk(self):
-        risks = {k: self.get_intrinsic_risk_for(k) for k in self.get_vulnerable_nodes().keys()}
+        risks = {k: self.get_inherent_risk_for(k) for k in self.get_vulnerable_nodes().keys()}
         return self.propagation_function(list(risks.values()))
 
     def reachable_by(self, n, use_cache=True):
@@ -312,18 +330,8 @@ class RiskGraph(DiGraph):
             sub_graph.configure_for_model(self._model)
         return sub_graph
 
-    def propagate_vulnerabilities(self):
-        vulnerable_nodes = self.get_vulnerable_nodes()
-        application_nodes = self.get_application_nodes()
-
-        propagated_graph = self.sub_graph_from_node_ids(application_nodes.keys())
-        for source, target in itertools.product(vulnerable_nodes.keys(), application_nodes.keys()):
-            if nx.has_path(self.reverse(), source, target):
-                propagated_graph.add_vulnerabilities(target, self.nodes[source]['metadata']['vulnerabilities'])
-        return propagated_graph
-
     def to_table_scores(self):
-        rows = [[node_id, self.get_severity_scores_for(node_id), self.cvss_combination_function(self.get_severity_scores_for(node_id)), self.get_intrinsic_risk_for(node_id), self.get_propagated_risk_for(node_id)] for node_id in self.nodes.keys()]
+        rows = [[node_id, self.get_severity_scores_for(node_id), self.cvss_combination_function(list(self.get_severity_scores_for(node_id).values())), self.get_inherent_risk_for(node_id), self.get_propagated_risk_for(node_id)] for node_id in self.nodes.keys()]
         table = Texttable()
         table.set_cols_align(['l', 'l', 'l', 'l', 'l'])
         table.set_cols_valign(['b', 'b', 'b', 'b', 'b'])
