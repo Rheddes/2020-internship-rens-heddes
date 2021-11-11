@@ -137,6 +137,5 @@ class RepoAnalyser:
 
             _add_rapid_plugin_to_pom(os.path.join(repo.working_dir, self.pom_path))
             _generate_call_graphs(repo.working_dir, self.pom_path)
-        return {}
-        # return _calculate_risk(repo_short_name, repo.working_dir)
+        return 'scanned'
 
