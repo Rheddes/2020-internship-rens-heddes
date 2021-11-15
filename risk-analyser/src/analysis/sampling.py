@@ -3,8 +3,7 @@ import glob
 import operator
 import os
 
-import pandas as pd
-
+import pandas as pd 
 import config
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
@@ -32,7 +31,9 @@ def exhaustive_based_risk(graph: RiskGraph, all_paths=None):
     for path in all_paths:
         for node in path:
             exhaustive_centrality[node] += 1
-    exhaustive_centrality = {key: value/max(exhaustive_centrality.values()) for key, value in exhaustive_centrality.items()}
+    max_value = max(exhaustive_centrality.values(), default=0)
+    if max_value > 0:
+        exhaustive_centrality = {key: value/max_value for key, value in exhaustive_centrality.items()}
     graph.reset_cache()
     graph.centrality_score_function = lambda x: exhaustive_centrality[x]
     return {n: graph.get_inherent_risk_for(n) for n in graph.nodes.keys()}
@@ -112,9 +113,13 @@ if __name__ == '__main__':
     list_of_lists = []
     for file in glob.glob(os.path.join(config.BASE_DIR, 'reduced_callgraphs', '**', '*-reduced.json'), recursive=True):
         name = file.split('/')[-1]
+        print('processing: ', name)
         graph = RiskGraph.create(*parse_JSON_file(file), auto_update=False)
+        if not len(graph.get_vulnerable_nodes()):
+            print('skipping: ', name)
+            continue
 
-        subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(90, len(graph.nodes)))  #  math.floor(len(graph) * 0.15))
+        subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(80, len(graph.nodes)))  #  math.floor(len(graph) * 0.15))
         all_execution_paths = calculate_all_execution_paths(subgraph)
 
         hong_exhaustive_fix_list, hong_exhaustive_risk_over_time = hong_exhaustive_search(subgraph, all_execution_paths)
