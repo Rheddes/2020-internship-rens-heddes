@@ -18,9 +18,10 @@ import heapq
 chaini = chain.from_iterable
 
 callgraphs = [
-    'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
-    'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
-    'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
+    # 'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
+    # 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
+    # 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
+    'org.mandas.docker-client-2.0.0-SNAPSHOT-reduced.json',
 ]
 
 
@@ -110,11 +111,12 @@ def proportional_risk(graph: RiskGraph, risk_scores):
 
 if __name__ == '__main__':
     list_of_lists = []
-    for file in glob.glob(os.path.join(config.BASE_DIR, 'repos', '**', '*-reduced.json'), recursive=True):
+    for file in [os.path.join(config.BASE_DIR, 'repos', callgraph) for callgraph in callgraphs]:
+    # for file in glob.glob(os.path.join(config.BASE_DIR, 'repos', '**', '*-reduced.json'), recursive=True):
         name = file.split('/')[-1]
         graph = RiskGraph.create(*parse_JSON_file(file), auto_update=False)
 
-        subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(90, len(graph.nodes)))  #  math.floor(len(graph) * 0.15))
+        subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(30, len(graph.nodes)))  #  math.floor(len(graph) * 0.15))
         all_execution_paths = calculate_all_execution_paths(subgraph)
 
         hong_exhaustive_fix_list, hong_exhaustive_risk_over_time = hong_exhaustive_search(subgraph, all_execution_paths)
