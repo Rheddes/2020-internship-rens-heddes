@@ -116,7 +116,7 @@ if __name__ == '__main__':
         name = file.split('/')[-1]
         graph = RiskGraph.create(*parse_JSON_file(file), auto_update=False)
 
-        subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(30, len(graph.nodes)))  #  math.floor(len(graph) * 0.15))
+        subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(90, len(graph.nodes)))  #  math.floor(len(graph) * 0.15))
         all_execution_paths = calculate_all_execution_paths(subgraph)
 
         hong_exhaustive_fix_list, hong_exhaustive_risk_over_time = hong_exhaustive_search(subgraph, all_execution_paths)
