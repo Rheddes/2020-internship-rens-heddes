@@ -24,7 +24,8 @@ callgraphs = [
 ]
 
 
-def exhaustive_based_risk(graph: RiskGraph, all_paths=None): if all_paths is None:
+def exhaustive_based_risk(graph: RiskGraph, all_paths=None):
+    if all_paths is None:
         all_paths = calculate_all_execution_paths(graph)
 
     exhaustive_centrality = {key: 0.0 for key in graph.nodes.keys()}
