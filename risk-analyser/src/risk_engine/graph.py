@@ -267,10 +267,10 @@ class RiskGraph(DiGraph):
             self.remove_vulnerability_from_node(node, cve)
 
     def get_severity_scores_for(self, node):
-        return {cve['id']: cve[config.CVSS_SCORE_VERSION] for cve in self.nodes[node]['metadata']['vulnerabilities'].values()}
+        return {cve['id']: cve.get(config.CVSS_SCORE_VERSION, 0.0) for cve in self.nodes[node]['metadata']['vulnerabilities'].values()}
 
     def get_impact_scores_for(self, node):
-        return {cve['id']: float(round_up(CVSS3(cve['vectorCVSS3']).isc)) if 'vectorCVSS3' in cve else None for cve in self.nodes[node]['metadata']['vulnerabilities'].values()}
+        return {cve['id']: float(round_up(CVSS3(cve['vectorCVSS3']).isc)) if 'vectorCVSS3' in cve else 0.0 for cve in self.nodes[node]['metadata']['vulnerabilities'].values()}
 
     def get_inherent_risk_for(self, node):
         return self.cvss_combination_function(list(self.get_severity_scores_for(node).values())) * self.centrality_score_function(node)

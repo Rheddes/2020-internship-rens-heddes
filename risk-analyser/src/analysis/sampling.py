@@ -17,14 +17,14 @@ import heapq
 chaini = chain.from_iterable
 
 callgraphs = [
-    'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
-    'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
-    'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
+    # 'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
+    # 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
+    # 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
+    'org.mandas.docker-client-2.0.0-SNAPSHOT-reduced.json',
 ]
 
 
-def exhaustive_based_risk(graph: RiskGraph, all_paths=None):
-    if all_paths is None:
+def exhaustive_based_risk(graph: RiskGraph, all_paths=None): if all_paths is None:
         all_paths = calculate_all_execution_paths(graph)
 
     exhaustive_centrality = {key: 0.0 for key in graph.nodes.keys()}
@@ -112,6 +112,7 @@ def proportional_risk(graph: RiskGraph, risk_scores):
 if __name__ == '__main__':
     list_of_lists = []
     for file in glob.glob(os.path.join(config.BASE_DIR, 'reduced_callgraphs', '**', '*-reduced.json'), recursive=True):
+    # for file in [os.path.join(config.BASE_DIR, 'repos', callgraph) for callgraph in callgraphs]:
         name = file.split('/')[-1]
         print('processing: ', name)
         graph = RiskGraph.create(*parse_JSON_file(file), auto_update=False)
