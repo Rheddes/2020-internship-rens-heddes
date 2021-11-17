@@ -16,13 +16,27 @@ import heapq
 
 from datetime import datetime
 
+import signal
+
+class timeout:
+    def __init__(self, seconds=1, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+    def handle_timeout(self, signum, frame):
+        raise TimeoutError(self.error_message)
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, self.handle_timeout)
+        signal.alarm(self.seconds)
+    def __exit__(self, type, value, traceback):
+        signal.alarm(0)
+
 chaini = chain.from_iterable
 
 callgraphs = [
     # 'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
     # 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
-    # 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
-    'org.mandas.docker-client-2.0.0-SNAPSHOT-reduced.json',
+    'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
+    # 'org.mandas.docker-client-2.0.0-SNAPSHOT-reduced.json',
 ]
 
 
@@ -117,15 +131,22 @@ if __name__ == '__main__':
     for file in glob.glob(os.path.join(config.BASE_DIR, 'reduced_callgraphs', '**', '*-reduced.json'), recursive=True):
     # for file in [os.path.join(config.BASE_DIR, 'repos', callgraph) for callgraph in callgraphs]:
         name = file.split('/')[-1]
-        print('[{}] Processing: {}'.format(datetime.now(), name))
-        continue
+        print('[{}] Reading: {}'.format(datetime.now(), name))
         graph = RiskGraph.create(*parse_JSON_file(file), auto_update=False)
         if not len(graph.get_vulnerable_nodes()):
             print('[{}] Skipping: {}'.format(datetime.now(), name))
             continue
 
-        subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(80, len(graph.nodes)))  #  math.floor(len(graph) * 0.15))
-        all_execution_paths = calculate_all_execution_paths(subgraph)
+        for retry in range(3):
+            try:
+                print('[{}] Processing (attempt {}): {}'.format(datetime.now(), retry, name))
+                with timeout(seconds=120):
+                    subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(80, len(graph.nodes)))  # math.floor(len(graph) * 0.15))
+                    all_execution_paths = calculate_all_execution_paths(subgraph)
+                break
+            except TimeoutError:
+                pass
+
 
         hong_exhaustive_fix_list, hong_exhaustive_risk_over_time = hong_exhaustive_search(subgraph, all_execution_paths)
         exhaustive_risks = exhaustive_based_risk(subgraph, all_execution_paths)
