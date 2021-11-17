@@ -14,6 +14,8 @@ from functools import partial
 from copy import deepcopy
 import heapq
 
+from datetime import datetime
+
 chaini = chain.from_iterable
 
 callgraphs = [
@@ -115,10 +117,11 @@ if __name__ == '__main__':
     for file in glob.glob(os.path.join(config.BASE_DIR, 'reduced_callgraphs', '**', '*-reduced.json'), recursive=True):
     # for file in [os.path.join(config.BASE_DIR, 'repos', callgraph) for callgraph in callgraphs]:
         name = file.split('/')[-1]
-        print('processing: ', name)
+        print('[{}] Processing: {}'.format(datetime.now(), name))
+        continue
         graph = RiskGraph.create(*parse_JSON_file(file), auto_update=False)
         if not len(graph.get_vulnerable_nodes()):
-            print('skipping: ', name)
+            print('[{}] Skipping: {}'.format(datetime.now(), name))
             continue
 
         subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(80, len(graph.nodes)))  #  math.floor(len(graph) * 0.15))
@@ -148,6 +151,7 @@ if __name__ == '__main__':
         }
         print('-------------------BEGIN RESULTS-------------------')
         print('Call-graph: ', name)
+        print('Current time: ', datetime.now())
         print('----------ORDERED LIST OF VULNERABILITIES----------')
         print('Exhaustive centrality: ', exhaustive_top_vulnerabilities)
         print('Exhaustive paths:      ', hong_exhaustive_fix_list)
