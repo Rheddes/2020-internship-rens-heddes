@@ -3,7 +3,9 @@ import glob
 import operator
 import os
 
-import pandas as pd 
+import jgrapht.convert
+import numpy as np
+import pandas as pd
 import config
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
@@ -13,6 +15,9 @@ from itertools import chain, product, starmap
 from functools import partial
 from copy import deepcopy
 import heapq
+from scipy.sparse import csr_matrix
+
+
 
 from datetime import datetime
 
@@ -34,8 +39,8 @@ chaini = chain.from_iterable
 
 callgraphs = [
     # 'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
-    # 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
-    'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
+    'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
+    # 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
     # 'org.mandas.docker-client-2.0.0-SNAPSHOT-reduced.json',
 ]
 
@@ -56,10 +61,13 @@ def exhaustive_based_risk(graph: RiskGraph, all_paths=None):
     return {n: graph.get_inherent_risk_for(n) for n in graph.nodes.keys()}
 
 
-def calculate_all_execution_paths(graph: RiskGraph):
-    roots = (v for v, d in graph.in_degree() if d == 0)
-    leaves = (v for v, d in graph.out_degree() if d == 0)
-    all_paths = partial(nx.all_simple_paths, graph)
+def calculate_all_execution_paths(sg: RiskGraph):
+    roots = (v for v, d in sg.in_degree() if d == 0)
+    leaves = (v for v, d in sg.out_degree() if d == 0)
+    all_paths = partial(nx.all_simple_paths, sg)
+    jgrapht_sg = jgrapht.convert.from_nx(sg)
+    jgrapht.types.MultiObjectiveSingleSourcePaths
+
     return list(chaini(starmap(all_paths, product(roots, leaves))))
 
 
@@ -73,19 +81,34 @@ def hong_exhaustive_search(graph: RiskGraph, all_paths=None):
         all_paths = calculate_all_execution_paths(current_graph)
     current_risk = hong_system_risk(current_graph, all_paths)
 
+    print('nodes: ', len(current_graph))
+    print('vulnerabilities: ', len(current_graph.get_vulnerabilities()))
+    print('paths: ', len(all_paths))
     risk_list = [current_risk]
     fix_list = []
     while current_risk > 0:
-        potential_fixes = []
-        for vulnerability, nodes in current_graph.get_vulnerabilities().items():
-            test_graph = deepcopy(current_graph)
-            test_graph.remove_vulnerability(vulnerability)
-            potential_fixes.append((vulnerability, current_risk-hong_system_risk(test_graph, all_paths), len(nodes)))
-        fix_vulnerability, delta_risk, _ = sorted(potential_fixes, key=operator.itemgetter(1, 2), reverse=True)[0]
-        current_graph.remove_vulnerability(fix_vulnerability)
-        current_risk = max(current_risk - delta_risk, 0)
+        vuln_list = list(current_graph.get_vulnerabilities())
+        node_list = list(current_graph)
+
+        A = np.array([
+            [
+                [
+                    current_graph.get_impact_scores_for(node).get(vuln, 0.0) if vuln != vulnerability_to_skip else 0.0 for node in node_list
+                ] for vuln in vuln_list
+            ] for vulnerability_to_skip in vuln_list
+        ])
+
+        B = csr_matrix(np.array([[1 if node in path else 0 for node in node_list] for path in all_paths]).T)
+        max_vulnerabilities = csr_matrix(A.max(initial=0.0, axis=1))
+        # system_risks_per_missing_vulnerability = np.matmul(max_vulnerabilities, B).max(initial=0.0, axis=1)
+        system_risks_per_missing_vulnerability = max_vulnerabilities * B
+        system_risks_per_missing_vulnerability = system_risks_per_missing_vulnerability.max(axis=1)
+
+        fix_vulnerability = vuln_list[system_risks_per_missing_vulnerability.argmin()]
+        current_risk = system_risks_per_missing_vulnerability.min()
         fix_list.append(fix_vulnerability)
         risk_list.append(current_risk)
+        current_graph.remove_vulnerability(fix_vulnerability)
     return fix_list, risk_list
 
 
@@ -108,11 +131,11 @@ def sort_dict(x):
     return {k: v for k, v in sorted(x.items(), key=lambda item: item[1], reverse=True)}
 
 
-def proportional_risk(graph: RiskGraph, risk_scores):
+def proportional_risk(sg: RiskGraph, risk_scores):
     proportional_risks = {}
     total_risk = sum(risk_scores.values())
-    proportional_cvss = lambda n, v: subgraph.get_severity_scores_for(n)[v] / sum(subgraph.get_severity_scores_for(n).values())
-    for vulnerability, nodes in graph.get_vulnerabilities().items():
+    proportional_cvss = lambda n, v: sg.get_severity_scores_for(n)[v] / sum(sg.get_severity_scores_for(n).values())
+    for vulnerability, nodes in sg.get_vulnerabilities().items():
         proportional_risks[vulnerability] = sum([proportional_cvss(node, vulnerability) * risk_scores[node]/total_risk for node in nodes])
     return sort_dict(proportional_risks)
 
