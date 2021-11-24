@@ -13,7 +13,9 @@ from utils.graph_sampling import ff_sample_subgraph
 
 # FILE = os.path.join(config.BASE_DIR, 'repos', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'repos', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
-FILE = os.path.join(config.BASE_DIR, 'repos', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
+# FILE = os.path.join(config.BASE_DIR, 'repos', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
+# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
+FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
 
 graph = RiskGraph.create(*parse_JSON_file(FILE), auto_update=False)
 nodeset = set(graph.get_vulnerable_nodes().keys())
@@ -69,5 +71,6 @@ for n in range(10, 250, 10):
 
 df = pd.DataFrame(list_of_lists, columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv', 'subgraph_time', 'union_time', 'all_paths_time', 'exhaustive_time', 'hong_time', 'model_time', 'score_time'])
 df.to_csv('runtime_analysis.csv', index=False)
+print(nodeset)
 
 print(df)

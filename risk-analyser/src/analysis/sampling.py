@@ -160,15 +160,18 @@ if __name__ == '__main__':
             print('[{}] Skipping: {}'.format(datetime.now(), name))
             continue
 
-        for retry in range(3):
+        all_execution_paths = None
+        for retry in range(2):
             try:
                 print('[{}] Processing (attempt {}): {}'.format(datetime.now(), retry, name))
-                with timeout(seconds=120):
-                    subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(80, len(graph.nodes)))  # math.floor(len(graph) * 0.15))
+                with timeout(seconds=1000):
+                    subgraph = ff_sample_subgraph(graph, graph.get_vulnerable_nodes().keys(), min(120, len(graph.nodes)))  # math.floor(len(graph) * 0.15))
                     all_execution_paths = calculate_all_execution_paths(subgraph)
                 break
             except TimeoutError:
                 pass
+        if all_execution_paths is None:
+            print('[{}] Unable to do exhaustive search: {}'.format(datetime.now(), name))
 
 
         hong_exhaustive_fix_list, hong_exhaustive_risk_over_time = hong_exhaustive_search(subgraph, all_execution_paths)
