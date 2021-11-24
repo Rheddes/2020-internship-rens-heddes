@@ -16,7 +16,8 @@ import io
 try:
     import cupy as np
     from cupyx.scipy.sparse import csr_matrix
-except ImportError:
+except ImportError as e:
+    logging.warn(e)
     logging.warn('Could not find/use CuPy using Numpy instead')
     import numpy as np
     from scipy.sparse import csr_matrix
