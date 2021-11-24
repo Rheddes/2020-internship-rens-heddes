@@ -7,6 +7,7 @@ import jgrapht
 import numpy as np
 import networkx as nx
 import igraph
+from scipy.sparse import csr_matrix
 from tqdm import tqdm
 
 from risk_engine.graph import RiskGraph
@@ -40,7 +41,7 @@ def calculate_all_execution_paths(sg: RiskGraph):
     g.add_vertices(map(str, sg.nodes))
     g.add_edges([(str(u), str(v)) for (u, v) in sg.edges])
     all_igraph_paths = []
-    tqdm_out = TqdmToLogger(logging.getLogger(),level=logging.INFO)
+    tqdm_out = TqdmToLogger(logging.getLogger(), level=logging.INFO)
     for root in tqdm(roots, file=tqdm_out):
         all_igraph_paths += [[int(g.vs[n]['name']) for n in path] for path in g.get_all_simple_paths(root, leaves)]
     return all_igraph_paths
@@ -81,7 +82,7 @@ def _calculate_risks(vulnerability_scores_nodes, path_matrix):
     logging.debug('Considering {} vulnerabilities'.format(vuln_to_remove))
     logging.debug('Vulnerability matrix\n' + vulnerability_scores_nodes.__repr__())
 
-    return (vulnerability_scores_nodes.max(axis=1) @ path_matrix).max(axis=1)
+    return (csr_matrix(vulnerability_scores_nodes.max(axis=1)) * path_matrix).toarray().max(axis=1)
 
 
 def _remove_vulnerability(remove_index, vulnerabilities, mask, vulnerability_scores_nodes):
@@ -103,6 +104,7 @@ def hong_exhaustive_search(graph: RiskGraph, all_paths=None, vulnerability_score
     vulnerabilities, vulnerability_scores_per_node_matrix, path_matrix, vulnerability_mask = _construct_matrices(
         graph, all_paths, vulnerability_score_function
     )
+    path_matrix = csr_matrix(path_matrix)
     current_risk = _calculate_risks(np.array([vulnerability_scores_per_node_matrix]), path_matrix)[0]
     risk_list = [current_risk]
     fix_list = []
@@ -127,13 +129,13 @@ if __name__ == '__main__':
     G.add_node(1)
     G.add_node(2)
     G.add_node(3)
-    G.add_node(6)
-    G.add_edges_from([(1, 2), (1, 3), (1, 6), (3, 6)])
+    G.add_node(4)
+    G.add_edges_from([(1, 2), (1, 3), (1, 4), (3, 4)])
     G.add_vulnerability(2, 5.0, 'v1')
-    G.add_vulnerability(6, 5.0, 'v1')
+    G.add_vulnerability(4, 5.0, 'v1')
     G.add_vulnerability(3, 7.0, 'v2')
-    G.add_vulnerability(6, 4.0, 'v3')
-    G.add_vulnerability(3, 4.0, 'v3')
+    G.add_vulnerability(2, 3.0, 'v3')
+    G.add_vulnerability(3, 3.0, 'v3')
     logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
 
     print(hong_exhaustive_search(G, vulnerability_score_function=lambda node, vuln: G.get_severity_scores_for(node).get(vuln, 0.0)))
