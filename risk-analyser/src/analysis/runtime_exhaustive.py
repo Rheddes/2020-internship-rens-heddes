@@ -1,14 +1,14 @@
 import logging
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
-
 import os.path
-from datetime import datetime
+import config
+
 import time
 
 import pandas as pd
 from rbo import rbo
 
-import config
+logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'exhaustive.log'), level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
+
 from analysis.sampling import hong_risk, sort_dict, calculate_risk_from_tuples, proportional_risk
 from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_exhaustive_search
 from risk_engine.graph import RiskGraph, parse_JSON_file
