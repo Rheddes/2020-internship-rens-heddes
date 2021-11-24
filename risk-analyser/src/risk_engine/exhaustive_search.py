@@ -4,15 +4,22 @@ from functools import partial
 from itertools import starmap, product, chain
 
 import jgrapht
-import numpy as np
 import networkx as nx
 import igraph
-from scipy.sparse import csr_matrix
 from tqdm import tqdm
 
 from risk_engine.graph import RiskGraph
 
 import io
+
+
+try:
+    import cupy as np
+    from cupyx.scipy.sparse import csr_matrix
+except ImportError:
+    logging.warn('Could not find/use CuPy using Numpy instead')
+    import numpy as np
+    from scipy.sparse import csr_matrix
 
 class TqdmToLogger(io.StringIO):
     """
