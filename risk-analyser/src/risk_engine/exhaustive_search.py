@@ -67,8 +67,8 @@ def _construct_matrices(graph: RiskGraph, all_paths, vulnerability_score_functio
         vulnerability_score_function = lambda node, vuln: graph.get_impact_scores_for(node).get(vuln, 0.0)
     node_list = list(graph.nodes)
     node_map = {node_id: index for index, node_id in enumerate(node_list)}
-    vulnerabilities = np.array(list(graph.get_vulnerabilities()))
-    no_vulns = vulnerabilities.shape[0]
+    vulnerabilities = list(graph.get_vulnerabilities())
+    no_vulns = len(vulnerabilities)
     logging.info('Constructing matrices for risk calculations')
     start_time = time.perf_counter()
     path_matrix = np.zeros((len(node_map), len(all_paths)))
@@ -103,7 +103,7 @@ def _remove_vulnerability(remove_index, vulnerabilities, mask, vulnerability_sco
     removed_vulnerability = vulnerabilities[remove_index]
     vulnerability_scores_nodes = mask[remove_index, :, :] @ vulnerability_scores_nodes
     mask = np.delete(mask, remove_index, 0)
-    vulnerabilities = np.delete(vulnerabilities, remove_index, 0)
+    del vulnerabilities[remove_index]
     return removed_vulnerability, vulnerabilities, mask, vulnerability_scores_nodes
 
 
@@ -123,10 +123,10 @@ def hong_exhaustive_search(graph: RiskGraph, all_paths=None, vulnerability_score
     risk_list = [current_risk]
     fix_list = []
     while current_risk > 0:
-        logging.info('Start loop with %s vulnerabilities left', vulnerabilities.shape[0])
+        logging.info('Start loop with %s vulnerabilities left', len(vulnerabilities))
         logging.debug(vulnerabilities)
         start = time.perf_counter()
-        risk_layers = np.stack([vulnerability_scores_per_node_matrix] * vulnerabilities.shape[0])
+        risk_layers = np.stack([vulnerability_scores_per_node_matrix] * len(vulnerabilities))
         system_risks_per_missing_vulnerability = _calculate_risks(vulnerability_mask @ risk_layers, path_matrix)
 
         fix_vulnerability, vulnerabilities, vulnerability_mask, vulnerability_scores_per_node_matrix = _remove_vulnerability(
