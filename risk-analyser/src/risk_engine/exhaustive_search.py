@@ -57,20 +57,26 @@ def _construct_matrices(graph: RiskGraph, all_paths, vulnerability_score_functio
     """
     if vulnerability_score_function is None:
         vulnerability_score_function = lambda node, vuln: graph.get_impact_scores_for(node).get(vuln, 0.0)
-    node_list = list(graph)
+    node_list = list(graph.nodes)
+    node_map = {node_id: index for index, node_id in enumerate(node_list)}
     vulnerabilities = np.array(list(graph.get_vulnerabilities()))
     no_vulns = vulnerabilities.shape[0]
-
-    path_matrix = np.array([[1 if node in path else 0 for node in node_list] for path in all_paths]).T
-
+    logging.info('Constructing matrices for risk calculations')
+    start_time = time.perf_counter()
+    path_matrix = np.zeros((len(node_map), len(all_paths)))
+    for index, path in enumerate(all_paths):
+        for node in path:
+            path_matrix[node_map[node], index] = 1
+    logging.info('Constructed path matrix, total elapsed time = %s seconds', time.perf_counter()-start_time)
     vulnerability_scores_per_node_matrix = np.array([
         [vulnerability_score_function(node, vuln) for node in node_list] for vuln in vulnerabilities
     ])
-
+    logging.info('Constructed vulnerability per node matrix, total elapsed time = %s seconds', time.perf_counter() - start_time)
     base_vulnerability_mask = np.zeros((no_vulns, no_vulns, no_vulns))
     idx = np.arange(no_vulns)
     base_vulnerability_mask[:, idx, idx] = 1.0
     base_vulnerability_mask[idx, idx, :] = 0.0
+    logging.info('Constructed mask matrix, total elapsed time = %s seconds', time.perf_counter() - start_time)
 
     return vulnerabilities, vulnerability_scores_per_node_matrix, path_matrix, base_vulnerability_mask
 
