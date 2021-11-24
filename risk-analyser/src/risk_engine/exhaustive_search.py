@@ -102,7 +102,9 @@ def _calculate_risks(vulnerability_scores_nodes, path_matrix):
 def _remove_vulnerability(remove_index, vulnerabilities, mask, vulnerability_scores_nodes):
     removed_vulnerability = vulnerabilities[remove_index]
     vulnerability_scores_nodes = mask[remove_index, :, :] @ vulnerability_scores_nodes
-    mask = np.delete(mask, remove_index, 0)
+    idx = np.arange(mask.shape[0]-1)
+    idx[remove_index:] += 1
+    mask = mask[idx,:,:]
     del vulnerabilities[remove_index]
     return removed_vulnerability, vulnerabilities, mask, vulnerability_scores_nodes
 
