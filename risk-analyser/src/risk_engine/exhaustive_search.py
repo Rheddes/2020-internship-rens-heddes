@@ -11,6 +11,25 @@ from tqdm import tqdm
 
 from risk_engine.graph import RiskGraph
 
+import io
+
+class TqdmToLogger(io.StringIO):
+    """
+        Output stream for TQDM which will output to logger module instead of
+        the StdOut.
+    """
+    logger = None
+    level = None
+    buf = ''
+    def __init__(self,logger,level=None):
+        super(TqdmToLogger, self).__init__()
+        self.logger = logger
+        self.level = level or logging.INFO
+    def write(self,buf):
+        self.buf = buf.strip('\r\n\t ')
+    def flush(self):
+        self.logger.log(self.level, self.buf)
+
 
 def calculate_all_execution_paths(sg: RiskGraph):
     roots = [str(v) for v, d in sg.in_degree() if d == 0]
@@ -21,7 +40,8 @@ def calculate_all_execution_paths(sg: RiskGraph):
     g.add_vertices(map(str, sg.nodes))
     g.add_edges([(str(u), str(v)) for (u, v) in sg.edges])
     all_igraph_paths = []
-    for root in tqdm(roots):
+    tqdm_out = TqdmToLogger(logging.getLogger(),level=logging.INFO)
+    for root in tqdm(roots, file=tqdm_out):
         all_igraph_paths += [[int(g.vs[n]['name']) for n in path] for path in g.get_all_simple_paths(root, leaves)]
     return all_igraph_paths
 

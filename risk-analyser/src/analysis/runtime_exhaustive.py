@@ -14,7 +14,6 @@ from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_ex
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
 
-FILE = os.path.join(config.BASE_DIR, 'repos', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'repos', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'repos', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
