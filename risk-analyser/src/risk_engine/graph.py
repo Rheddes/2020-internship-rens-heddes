@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import re
+import time
 
 import matplotlib.patheffects as path_effects
 import matplotlib.pyplot as plt
@@ -180,10 +181,12 @@ class RiskGraph(DiGraph):
 
     @staticmethod
     def create(nodes: list, edges: list, vulnerable_nodes: dict, metadata: pd.DataFrame, vulnerabilities=None, auto_update=True) -> RiskGraph:
+        logging.info('Creating call-graph with %s nodes, %s edges', len(nodes), len(edges))
+        start_time = time.perf_counter()
         nx_graph = RiskGraph()
         nx_graph._auto_update = auto_update
-        for node_id in nodes:
-            nx_graph.add_node(node_id, metadata[metadata['id'] == node_id].iloc[0].to_dict())
+        for index, row in metadata.iterrows():
+            nx_graph.add_node(row['id'], row.to_dict())
         nx_graph.add_edges_from(edges)
         nx_graph.remove_edges_from(nx.selfloop_edges(nx_graph))
         for node_id, vulnerabilities in vulnerable_nodes.items():
@@ -193,6 +196,7 @@ class RiskGraph(DiGraph):
             #         nx_graph.add_vulnerability(node_id, vulnerability[config.CVSS_SCORE_VERSION], cve)
         if auto_update:
             nx_graph.configure_for_model(nx_graph._model)
+        logging.info('Created call-graph, elapsed time = %s seconds', time.perf_counter()-start_time)
         return nx_graph
 
     def configure_for_model(self, model):
@@ -242,7 +246,8 @@ class RiskGraph(DiGraph):
             self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'] = {}
             self.nodes[node_with_vulnerability]['infected'] = 1
         self.nodes[node_with_vulnerability]['metadata']['vulnerabilities'][cve_id] = {
-            config.CVSS_SCORE_VERSION: cvss_score
+            'id': cve_id,
+            config.CVSS_SCORE_VERSION: cvss_score,
         }
         if self._auto_update:
             self.configure_for_model(self._model)

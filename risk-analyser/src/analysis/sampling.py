@@ -1,27 +1,19 @@
 import difflib
 import glob
-import operator
 import os
 
-import jgrapht.convert
-import numpy as np
 import pandas as pd
 import config
+from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_exhaustive_search
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
-import networkx as nx
 
-from itertools import chain, product, starmap
-from functools import partial
-from copy import deepcopy
+from itertools import chain
 import heapq
-from scipy.sparse import csr_matrix
-
-
-
 from datetime import datetime
 
 import signal
+
 
 class timeout:
     def __init__(self, seconds=1, error_message='Timeout'):
@@ -34,8 +26,6 @@ class timeout:
         signal.alarm(self.seconds)
     def __exit__(self, type, value, traceback):
         signal.alarm(0)
-
-chaini = chain.from_iterable
 
 callgraphs = [
     # 'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
@@ -59,57 +49,6 @@ def exhaustive_based_risk(graph: RiskGraph, all_paths=None):
     graph.reset_cache()
     graph.centrality_score_function = lambda x: exhaustive_centrality[x]
     return {n: graph.get_inherent_risk_for(n) for n in graph.nodes.keys()}
-
-
-def calculate_all_execution_paths(sg: RiskGraph):
-    roots = (v for v, d in sg.in_degree() if d == 0)
-    leaves = (v for v, d in sg.out_degree() if d == 0)
-    all_paths = partial(nx.all_simple_paths, sg)
-    jgrapht_sg = jgrapht.convert.from_nx(sg)
-    jgrapht.types.MultiObjectiveSingleSourcePaths
-
-    return list(chaini(starmap(all_paths, product(roots, leaves))))
-
-
-def hong_system_risk(graph: RiskGraph, all_paths):
-    return max([sum([max(graph.get_impact_scores_for(node).values(), default=0) for node in path]) for path in all_paths], default=0)
-
-
-def hong_exhaustive_search(graph: RiskGraph, all_paths=None):
-    current_graph = deepcopy(graph)
-    if all_paths is None:
-        all_paths = calculate_all_execution_paths(current_graph)
-    current_risk = hong_system_risk(current_graph, all_paths)
-
-    print('nodes: ', len(current_graph))
-    print('vulnerabilities: ', len(current_graph.get_vulnerabilities()))
-    print('paths: ', len(all_paths))
-    risk_list = [current_risk]
-    fix_list = []
-    while current_risk > 0:
-        vuln_list = list(current_graph.get_vulnerabilities())
-        node_list = list(current_graph)
-
-        A = np.array([
-            [
-                [
-                    current_graph.get_impact_scores_for(node).get(vuln, 0.0) if vuln != vulnerability_to_skip else 0.0 for node in node_list
-                ] for vuln in vuln_list
-            ] for vulnerability_to_skip in vuln_list
-        ])
-
-        B = csr_matrix(np.array([[1 if node in path else 0 for node in node_list] for path in all_paths]).T)
-        max_vulnerabilities = csr_matrix(A.max(initial=0.0, axis=1))
-        # system_risks_per_missing_vulnerability = np.matmul(max_vulnerabilities, B).max(initial=0.0, axis=1)
-        system_risks_per_missing_vulnerability = max_vulnerabilities * B
-        system_risks_per_missing_vulnerability = system_risks_per_missing_vulnerability.max(axis=1)
-
-        fix_vulnerability = vuln_list[system_risks_per_missing_vulnerability.argmin()]
-        current_risk = system_risks_per_missing_vulnerability.min()
-        fix_list.append(fix_vulnerability)
-        risk_list.append(current_risk)
-        current_graph.remove_vulnerability(fix_vulnerability)
-    return fix_list, risk_list
 
 
 def hong_risk(graph: RiskGraph, alpha=0.5):
@@ -172,7 +111,6 @@ if __name__ == '__main__':
                 pass
         if all_execution_paths is None:
             print('[{}] Unable to do exhaustive search: {}'.format(datetime.now(), name))
-
 
         hong_exhaustive_fix_list, hong_exhaustive_risk_over_time = hong_exhaustive_search(subgraph, all_execution_paths)
         exhaustive_risks = exhaustive_based_risk(subgraph, all_execution_paths)

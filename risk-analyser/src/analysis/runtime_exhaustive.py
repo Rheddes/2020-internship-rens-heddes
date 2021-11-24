@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
+
 import os.path
 from datetime import datetime
 import time
@@ -6,12 +9,12 @@ import pandas as pd
 from rbo import rbo
 
 import config
-from analysis.sampling import calculate_all_execution_paths, sort_dict, calculate_risk_from_tuples, proportional_risk, \
-    hong_exhaustive_search, hong_risk
+from analysis.sampling import hong_risk, sort_dict, calculate_risk_from_tuples, proportional_risk
+from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_exhaustive_search
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
 
-# FILE = os.path.join(config.BASE_DIR, 'repos', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
+FILE = os.path.join(config.BASE_DIR, 'repos', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'repos', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'repos', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
@@ -21,8 +24,8 @@ graph = RiskGraph.create(*parse_JSON_file(FILE), auto_update=False)
 nodeset = set(graph.get_vulnerable_nodes().keys())
 
 list_of_lists = []
-for n in range(10, 250, 10):
-    print(n)
+for n in range(80, 210, 10):
+    logging.info('Using subgraph of size: {}'.format(n))
     start = time.perf_counter()
     subgraph = ff_sample_subgraph(graph, nodeset, min(n, len(graph.nodes)))
     subgraph_stop = time.perf_counter()
