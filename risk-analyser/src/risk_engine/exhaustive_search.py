@@ -128,6 +128,9 @@ def hong_exhaustive_search(graph: RiskGraph, all_paths=None, vulnerability_score
         all_paths = calculate_all_execution_paths(graph, 900)
     logging.info('paths: %s', len(all_paths))
 
+    if not all_paths:
+        return [], []
+
     vulnerabilities, vulnerability_scores_per_node_matrix, path_matrix, vulnerability_mask = _construct_matrices(
         graph, all_paths, vulnerability_score_function
     )
