@@ -41,7 +41,7 @@ class TqdmToLogger(io.StringIO):
         self.logger.log(self.level, self.buf)
 
 
-# @func_set_timeout(2.5)
+@func_set_timeout(2.5)
 def calculate_all_execution_paths(sg: RiskGraph):
     roots = [str(v) for v, d in sg.in_degree() if d == 0]
     leaves = [str(v) for v, d in sg.out_degree() if d == 0]
@@ -75,7 +75,7 @@ def _construct_matrices(graph: RiskGraph, all_paths, vulnerability_score_functio
     no_vulns = len(vulnerabilities)
     logging.info('Constructing matrices for risk calculations')
     start_time = time.perf_counter()
-    path_matrix = np.zeros((len(node_map), len(all_paths)))
+    path_matrix = csr_matrix((len(node_map), len(all_paths)), dtype=np.float)
     for index, path in enumerate(all_paths):
         for node in path:
             path_matrix[node_map[node], index] = 1
@@ -124,7 +124,6 @@ def hong_exhaustive_search(graph: RiskGraph, all_paths=None, vulnerability_score
     vulnerabilities, vulnerability_scores_per_node_matrix, path_matrix, vulnerability_mask = _construct_matrices(
         graph, all_paths, vulnerability_score_function
     )
-    path_matrix = csr_matrix(path_matrix)
     current_risk = _calculate_risks(np.array([vulnerability_scores_per_node_matrix]), path_matrix)[0]
     risk_list = [current_risk]
     fix_list = []
