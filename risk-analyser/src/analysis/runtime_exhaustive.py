@@ -42,6 +42,8 @@ for n in range(10, 240, 10):
     subgraph = remove_simple_loops(ff_sample_subgraph(graph, nodeset, min(n, len(graph.nodes))))
     subgraph_stop = time.perf_counter()
     nodeset = nodeset.union(set(subgraph.nodes.keys()))
+    logging.debug('Nodeset:')
+    logging.debug(nodeset)
     nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
     union_stop = time.perf_counter()
 

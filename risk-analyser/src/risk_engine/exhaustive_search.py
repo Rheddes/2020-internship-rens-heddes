@@ -135,7 +135,7 @@ def hong_exhaustive_search(graph: RiskGraph, all_paths=None, vulnerability_score
         system_risks_per_missing_vulnerability = _calculate_risks(vulnerability_mask @ risk_layers, path_matrix)
 
         fix_vulnerability, vulnerabilities, vulnerability_mask, vulnerability_scores_per_node_matrix = _remove_vulnerability(
-            system_risks_per_missing_vulnerability.argmin(), vulnerabilities, vulnerability_mask, vulnerability_scores_per_node_matrix)
+            int(system_risks_per_missing_vulnerability.argmin()), vulnerabilities, vulnerability_mask, vulnerability_scores_per_node_matrix)
         current_risk = system_risks_per_missing_vulnerability.min()
         fix_list.append(fix_vulnerability)
         risk_list.append(current_risk)
