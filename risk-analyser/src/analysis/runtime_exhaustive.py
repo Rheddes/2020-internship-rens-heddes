@@ -51,7 +51,7 @@ def try_all_paths(sg: RiskGraph, node_set, previous_calculation_time):
 
 list_of_lists = []
 all_paths_time = 0.0
-for n in range(170, 240, 10):
+for n in range(10, 240, 10):
     logging.info('Using subgraph of size: {}'.format(n))
     start = time.perf_counter()
 
