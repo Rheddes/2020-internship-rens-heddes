@@ -325,11 +325,14 @@ class RiskGraph(DiGraph):
     def sub_graph_from_node_ids(self, node_ids, auto_update=True) -> RiskGraph:
         sub_graph = RiskGraph()
         sub_graph.add_nodes_from((n, self.nodes[n]) for n in node_ids)
-        sub_graph.add_edges_from(
+        for (u, v, dd) in (
             (n, neighbour, d)
             for n, neighbours in self.adj.items() if n in node_ids
             for neighbour, d in neighbours.items() if neighbour in node_ids
-        )
+        ):
+            sub_graph.add_edge(u, v, **dd)
+            if not nx.is_directed_acyclic_graph(sub_graph):
+                sub_graph.remove_edge(u, v)
         sub_graph.graph.update(self.graph)
         if auto_update:
             sub_graph.configure_for_model(self._model)
