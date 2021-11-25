@@ -16,12 +16,12 @@ import io
 
 try:
     import cupy as np
-    from cupyx.scipy.sparse import csr_matrix
+    from cupyx.scipy.sparse import csr_matrix, coo_matrix
 except ImportError as e:
-    logging.warn(e)
-    logging.warn('Could not find/use CuPy using Numpy instead')
+    logging.warning(e)
+    logging.warning('Could not find/use CuPy using Numpy instead')
     import numpy as np
-    from scipy.sparse import csr_matrix
+    from scipy.sparse import csr_matrix, coo_matrix
 
 class TqdmToLogger(io.StringIO):
     """
@@ -41,17 +41,17 @@ class TqdmToLogger(io.StringIO):
         self.logger.log(self.level, self.buf)
 
 
-@func_set_timeout(2.5)
-def calculate_all_execution_paths(sg: RiskGraph):
+@func_set_timeout(lambda sg, previous_time: previous_time * 3 + len(sg)/3)
+def calculate_all_execution_paths(sg: RiskGraph, previous_time: float):
     roots = [str(v) for v, d in sg.in_degree() if d == 0]
-    leaves = [str(v) for v, d in sg.out_degree() if d == 0]
+    leaves = [str(v) for v in sg.get_vulnerable_nodes().keys()]
     logging.info('Convering to igraph')
     g = igraph.Graph(directed=True)
     g.add_vertices(map(str, sg.nodes))
     g.add_edges([(str(u), str(v)) for (u, v) in sg.edges])
     all_igraph_paths = []
     logging.info('Graph is DAG: %s', g.is_dag())
-    logging.info('Calculating all paths for %s roots and %s leaves', len(roots), len(leaves))
+    logging.info('Calculating all paths for %s roots and %s vulnerable nodes', len(roots), len(leaves))
     tqdm_out = TqdmToLogger(logging.getLogger(), level=logging.INFO)
     for root in tqdm(roots, file=tqdm_out):
         logging.debug('Calculating for: %s', root)
@@ -75,10 +75,17 @@ def _construct_matrices(graph: RiskGraph, all_paths, vulnerability_score_functio
     no_vulns = len(vulnerabilities)
     logging.info('Constructing matrices for risk calculations')
     start_time = time.perf_counter()
-    path_matrix = csr_matrix((len(node_map), len(all_paths)), dtype=np.float)
+
+    row = []
+    col = []
+    data = []
     for index, path in enumerate(all_paths):
         for node in path:
-            path_matrix[node_map[node], index] = 1
+            row.append(node_map[node])
+            col.append(index)
+            data.append(1)
+    path_matrix = coo_matrix((data, (row, col)), shape=(len(node_map), len(all_paths))).tocsr()
+
     logging.info('Constructed path matrix, total elapsed time = %s seconds', time.perf_counter()-start_time)
     vulnerability_scores_per_node_matrix = np.array([
         [vulnerability_score_function(node, vuln) for node in node_list] for vuln in vulnerabilities
@@ -118,7 +125,7 @@ def hong_exhaustive_search(graph: RiskGraph, all_paths=None, vulnerability_score
     logging.info('edges: %s', len(graph.edges))
     logging.info('vulnerabilities: %s', len(graph.get_vulnerabilities()))
     if all_paths is None:
-        all_paths = calculate_all_execution_paths(graph)
+        all_paths = calculate_all_execution_paths(graph, 900)
     logging.info('paths: %s', len(all_paths))
 
     vulnerabilities, vulnerability_scores_per_node_matrix, path_matrix, vulnerability_mask = _construct_matrices(
@@ -149,7 +156,7 @@ if __name__ == '__main__':
     G.add_node(2)
     G.add_node(3)
     G.add_node(4)
-    G.add_edges_from([(1, 2), (1, 3), (1, 4), (3, 4)])
+    G.add_edges_from([(1, 2), (1, 3), (2, 4), (3, 4)])
     G.add_vulnerability(2, 5.0, 'v1')
     G.add_vulnerability(4, 5.0, 'v1')
     G.add_vulnerability(3, 7.0, 'v2')

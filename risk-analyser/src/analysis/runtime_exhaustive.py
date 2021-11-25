@@ -9,8 +9,8 @@ import pandas as pd
 from rbo import rbo
 from func_timeout import FunctionTimedOut
 
-logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'exhaustive.log'), level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
-# logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
+# logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'exhaustive.log'), level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
 
 from analysis.sampling import hong_risk, sort_dict, calculate_risk_from_tuples, proportional_risk
 from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_exhaustive_search
@@ -35,20 +35,31 @@ def remove_simple_loops(graph: RiskGraph):
                 graph.remove_edge(u, v)
     return graph
 
+
+def try_all_paths(sg: RiskGraph, node_set, previous_calculation_time):
+    g, aep = None, []
+    for retry in range(4):
+        g = remove_simple_loops(ff_sample_subgraph(sg, node_set, min(n, len(sg.nodes))))
+        try:
+            aep = calculate_all_execution_paths(g, previous_calculation_time + retry*10)
+            break
+        except FunctionTimedOut:
+            pass
+
+    return g, aep
+
+
 list_of_lists = []
-for n in range(10, 240, 10):
+all_paths_time = 0.0
+for n in range(170, 240, 10):
     logging.info('Using subgraph of size: {}'.format(n))
     start = time.perf_counter()
-    subgraph = remove_simple_loops(ff_sample_subgraph(graph, nodeset, min(n, len(graph.nodes))))
-    subgraph_stop = time.perf_counter()
-    nodeset = nodeset.union(set(subgraph.nodes.keys()))
-    logging.debug('Nodeset:')
-    logging.debug(nodeset)
-    nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
-    union_stop = time.perf_counter()
 
-    all_execution_paths = calculate_all_execution_paths(subgraph)
+    subgraph, all_execution_paths = try_all_paths(graph, nodeset, all_paths_time)
+    nodeset = nodeset.union(set(subgraph.nodes.keys()))
+    nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
     all_paths_stop = time.perf_counter()
+    all_paths_time = all_paths_stop-start
     exhausive_risk_psv, _ = hong_exhaustive_search(subgraph, all_execution_paths)
 
     exhaustive_stop = time.perf_counter()
@@ -76,9 +87,7 @@ for n in range(10, 240, 10):
         exhausive_risk_psv,
         hong_risk_psv,
         model_risk_psv,
-        subgraph_stop-start,
-        union_stop-subgraph_stop,
-        all_paths_stop-union_stop,
+        all_paths_time,
         exhaustive_stop-all_paths_stop,
         hong_stop-exhaustive_stop,
         model_stop-hong_stop,
@@ -87,7 +96,7 @@ for n in range(10, 240, 10):
     print(record)
     list_of_lists.append(record)
 
-df = pd.DataFrame(list_of_lists, columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv', 'subgraph_time', 'union_time', 'all_paths_time', 'exhaustive_time', 'hong_time', 'model_time', 'score_time'])
+df = pd.DataFrame(list_of_lists, columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv', 'all_paths_time', 'exhaustive_time', 'hong_time', 'model_time', 'score_time'])
 df.to_csv('runtime_analysis.csv', index=False)
 print(nodeset)
 
