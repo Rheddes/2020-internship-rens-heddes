@@ -9,8 +9,8 @@ import pandas as pd
 from rbo import rbo
 from func_timeout import FunctionTimedOut
 
-# logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'exhaustive.log'), level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
-logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
+logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'exhaustive.log'), level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
+# logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
 
 from analysis.sampling import hong_risk, sort_dict, calculate_risk_from_tuples, proportional_risk
 from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_exhaustive_search
