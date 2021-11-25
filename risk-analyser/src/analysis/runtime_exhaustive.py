@@ -29,6 +29,8 @@ for n in range(80, 210, 10):
     subgraph = ff_sample_subgraph(graph, nodeset, min(n, len(graph.nodes)))
     subgraph_stop = time.perf_counter()
     nodeset = nodeset.union(set(subgraph.nodes.keys()))
+    logging.debug('Nodeset:')
+    logging.debug(nodeset)
     union_stop = time.perf_counter()
 
     all_execution_paths = calculate_all_execution_paths(subgraph)
