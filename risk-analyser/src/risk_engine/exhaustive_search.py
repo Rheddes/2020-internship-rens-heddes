@@ -9,6 +9,7 @@ import igraph
 from tqdm import tqdm
 
 from risk_engine.graph import RiskGraph
+from func_timeout import func_set_timeout
 
 import io
 
@@ -40,17 +41,20 @@ class TqdmToLogger(io.StringIO):
         self.logger.log(self.level, self.buf)
 
 
+# @func_set_timeout(2.5)
 def calculate_all_execution_paths(sg: RiskGraph):
     roots = [str(v) for v, d in sg.in_degree() if d == 0]
     leaves = [str(v) for v, d in sg.out_degree() if d == 0]
-    logging.info('Calculating all paths for %s roots and %s leaves', len(roots), len(leaves))
-
+    logging.info('Convering to igraph')
     g = igraph.Graph(directed=True)
     g.add_vertices(map(str, sg.nodes))
     g.add_edges([(str(u), str(v)) for (u, v) in sg.edges])
     all_igraph_paths = []
+    logging.info('Graph is DAG: %s', g.is_dag())
+    logging.info('Calculating all paths for %s roots and %s leaves', len(roots), len(leaves))
     tqdm_out = TqdmToLogger(logging.getLogger(), level=logging.INFO)
     for root in tqdm(roots, file=tqdm_out):
+        logging.debug('Calculating for: %s', root)
         all_igraph_paths += [[int(g.vs[n]['name']) for n in path] for path in g.get_all_simple_paths(root, leaves)]
     return all_igraph_paths
 
