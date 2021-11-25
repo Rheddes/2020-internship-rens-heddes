@@ -17,10 +17,9 @@ from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_ex
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
 
-# FILE = os.path.join(config.BASE_DIR, 'repos', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
-# FILE = os.path.join(config.BASE_DIR, 'repos', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
+FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
-FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
+# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
 
 graph = RiskGraph.create(*parse_JSON_file(FILE), auto_update=False)
 nodeset = set(graph.get_vulnerable_nodes().keys())
@@ -49,55 +48,56 @@ def try_all_paths(sg: RiskGraph, node_set, previous_calculation_time):
     return g, aep
 
 
-list_of_lists = []
-all_paths_time = 0.0
-for n in range(10, 240, 10):
-    logging.info('Using subgraph of size: {}'.format(n))
-    start = time.perf_counter()
+if __name__ == '__main__':
+    list_of_lists = []
+    all_paths_time = 0.0
+    for n in range(10, 240, 10):
+        logging.info('Using subgraph of size: {}'.format(n))
+        start = time.perf_counter()
 
-    subgraph, all_execution_paths = try_all_paths(graph, nodeset, all_paths_time)
-    nodeset = nodeset.union(set(subgraph.nodes.keys()))
-    nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
-    all_paths_stop = time.perf_counter()
-    all_paths_time = all_paths_stop-start
-    exhausive_risk_psv, _ = hong_exhaustive_search(subgraph, all_execution_paths)
+        subgraph, all_execution_paths = try_all_paths(graph, nodeset, all_paths_time)
+        nodeset = nodeset.union(set(subgraph.nodes.keys()))
+        nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
+        all_paths_stop = time.perf_counter()
+        all_paths_time = all_paths_stop-start
+        exhausive_risk_psv, _ = hong_exhaustive_search(subgraph, all_execution_paths)
 
-    exhaustive_stop = time.perf_counter()
+        exhaustive_stop = time.perf_counter()
 
-    subgraph.configure_for_model('d')
+        subgraph.configure_for_model('d')
 
-    hong_risks = hong_risk(subgraph)
-    hong_risk_psv = list(sort_dict(calculate_risk_from_tuples(hong_risks, 1)).keys())
-    hong_stop = time.perf_counter()
+        hong_risks = hong_risk(subgraph)
+        hong_risk_psv = list(sort_dict(calculate_risk_from_tuples(hong_risks, 1)).keys())
+        hong_stop = time.perf_counter()
 
-    betweenness_risks = {node: subgraph.get_inherent_risk_for(node) for node in subgraph.nodes.keys()}
-    model_risk_psv = list(proportional_risk(subgraph, betweenness_risks).keys())
+        betweenness_risks = {node: subgraph.get_inherent_risk_for(node) for node in subgraph.nodes.keys()}
+        model_risk_psv = list(proportional_risk(subgraph, betweenness_risks).keys())
 
-    model_stop = time.perf_counter()
+        model_stop = time.perf_counter()
 
-    hong_rbo = rbo.RankingSimilarity(exhausive_risk_psv, hong_risk_psv).rbo()
-    model_rbo = rbo.RankingSimilarity(exhausive_risk_psv, model_risk_psv).rbo()
+        hong_rbo = rbo.RankingSimilarity(exhausive_risk_psv, hong_risk_psv).rbo()
+        model_rbo = rbo.RankingSimilarity(exhausive_risk_psv, model_risk_psv).rbo()
 
-    finish_stop = time.perf_counter()
+        finish_stop = time.perf_counter()
 
-    record = [
-        n,
-        hong_rbo,
-        model_rbo,
-        exhausive_risk_psv,
-        hong_risk_psv,
-        model_risk_psv,
-        all_paths_time,
-        exhaustive_stop-all_paths_stop,
-        hong_stop-exhaustive_stop,
-        model_stop-hong_stop,
-        finish_stop-model_stop,
-    ]
-    print(record)
-    list_of_lists.append(record)
+        record = [
+            n,
+            hong_rbo,
+            model_rbo,
+            exhausive_risk_psv,
+            hong_risk_psv,
+            model_risk_psv,
+            all_paths_time,
+            exhaustive_stop-all_paths_stop,
+            hong_stop-exhaustive_stop,
+            model_stop-hong_stop,
+            finish_stop-model_stop,
+        ]
+        print(record)
+        list_of_lists.append(record)
 
-df = pd.DataFrame(list_of_lists, columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv', 'all_paths_time', 'exhaustive_time', 'hong_time', 'model_time', 'score_time'])
-df.to_csv('runtime_analysis.csv', index=False)
-print(nodeset)
+    df = pd.DataFrame(list_of_lists, columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv', 'all_paths_time', 'exhaustive_time', 'hong_time', 'model_time', 'score_time'])
+    df.to_csv('runtime_analysis.csv', index=False)
+    print(nodeset)
 
-print(df)
+    print(df)

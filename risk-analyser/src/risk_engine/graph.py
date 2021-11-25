@@ -332,6 +332,7 @@ class RiskGraph(DiGraph):
         ):
             sub_graph.add_edge(u, v, **dd)
             if not nx.is_directed_acyclic_graph(sub_graph):
+                logging.debug('Edge (%s, %s) introduces cycle (removed)', u, v)
                 sub_graph.remove_edge(u, v)
         sub_graph.graph.update(self.graph)
         if auto_update:
