@@ -4,10 +4,13 @@ import config
 
 import time
 
+import networkx as nx
 import pandas as pd
 from rbo import rbo
+from func_timeout import FunctionTimedOut
 
 logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'exhaustive.log'), level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
+# logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
 
 from analysis.sampling import hong_risk, sort_dict, calculate_risk_from_tuples, proportional_risk
 from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_exhaustive_search
@@ -22,15 +25,26 @@ FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.genersoft.wvp-1.
 graph = RiskGraph.create(*parse_JSON_file(FILE), auto_update=False)
 nodeset = set(graph.get_vulnerable_nodes().keys())
 
+
+def remove_simple_loops(graph: RiskGraph):
+    node_list = list(graph.nodes)
+    adj = nx.linalg.adj_matrix(graph, nodelist=node_list)
+    for idx_u, u in enumerate(node_list):
+        for idx_v, v in enumerate(node_list[idx_u:]):
+            if adj[idx_u,idx_u+idx_v] and adj[idx_u+idx_v,idx_u]:
+                graph.remove_edge(u, v)
+    return graph
+
 list_of_lists = []
-for n in range(80, 210, 10):
+for n in range(10, 240, 10):
     logging.info('Using subgraph of size: {}'.format(n))
     start = time.perf_counter()
-    subgraph = ff_sample_subgraph(graph, nodeset, min(n, len(graph.nodes)))
+    subgraph = remove_simple_loops(ff_sample_subgraph(graph, nodeset, min(n, len(graph.nodes))))
     subgraph_stop = time.perf_counter()
     nodeset = nodeset.union(set(subgraph.nodes.keys()))
     logging.debug('Nodeset:')
     logging.debug(nodeset)
+    nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
     union_stop = time.perf_counter()
 
     all_execution_paths = calculate_all_execution_paths(subgraph)
