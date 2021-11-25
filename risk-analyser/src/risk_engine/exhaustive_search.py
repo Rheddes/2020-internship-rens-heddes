@@ -83,7 +83,7 @@ def _construct_matrices(graph: RiskGraph, all_paths, vulnerability_score_functio
         for node in path:
             row.append(node_map[node])
             col.append(index)
-            data.append(1)
+            data.append(1.0)
     path_matrix = coo_matrix((np.array(data), (np.array(row), np.array(col))), shape=(len(node_map), len(all_paths))).tocsr()
 
     logging.info('Constructed path matrix, total elapsed time = %s seconds', time.perf_counter()-start_time)
