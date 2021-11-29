@@ -41,7 +41,7 @@ class TqdmToLogger(io.StringIO):
         self.logger.log(self.level, self.buf)
 
 
-@func_set_timeout(lambda sg, previous_time: previous_time * 3 + len(sg)/3)
+# @func_set_timeout(lambda sg, previous_time: previous_time * 3 + len(sg)/3)
 def calculate_all_execution_paths(sg: RiskGraph, previous_time: float):
     root = 'START'
     leaves = [str(v) for v in sg.get_vulnerable_nodes().keys()]

@@ -17,9 +17,11 @@ from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_ex
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
 
-FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
+# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
 # FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
-# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
+FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
+# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.xenoamess.x8l-2.1.2-reduced.json')
+# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'me.gaigeshen.wechat.wechat-mp-1.2.0-SNAPSHOT-reduced.json')
 
 graph = RiskGraph.create(*parse_JSON_file(FILE), auto_update=False)
 nodeset = set(graph.get_vulnerable_nodes().keys())
@@ -38,7 +40,8 @@ def remove_simple_loops(graph: RiskGraph):
 def try_all_paths(sg: RiskGraph, node_set, previous_calculation_time):
     g, aep = None, []
     for retry in range(4):
-        g = remove_simple_loops(ff_sample_subgraph(sg, node_set, min(n, len(sg.nodes))))
+        # g = remove_simple_loops(ff_sample_subgraph(sg, node_set, min(n, len(sg.nodes))))
+        g = ff_sample_subgraph(sg, node_set, min(n, len(sg.nodes)))
         try:
             aep = calculate_all_execution_paths(g, previous_calculation_time + retry*10)
             break
