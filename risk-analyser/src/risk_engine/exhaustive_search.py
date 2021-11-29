@@ -43,19 +43,22 @@ class TqdmToLogger(io.StringIO):
 
 @func_set_timeout(lambda sg, previous_time: previous_time * 3 + len(sg)/3)
 def calculate_all_execution_paths(sg: RiskGraph, previous_time: float):
-    roots = [str(v) for v, d in sg.in_degree() if d == 0]
+    root = 'START'
     leaves = [str(v) for v in sg.get_vulnerable_nodes().keys()]
-    logging.info('Convering to igraph')
+    logging.info('Converting to igraph')
     g = igraph.Graph(directed=True)
     g.add_vertices(map(str, sg.nodes))
     g.add_edges([(str(u), str(v)) for (u, v) in sg.edges])
+
+    g.add_vertex(root)
+    g.add_edges([(root, v) for v in leaves])
+
     all_igraph_paths = []
     logging.info('Graph is DAG: %s', g.is_dag())
-    logging.info('Calculating all paths for %s roots and %s vulnerable nodes', len(roots), len(leaves))
-    tqdm_out = TqdmToLogger(logging.getLogger(), level=logging.INFO)
-    for root in tqdm(roots, file=tqdm_out):
-        logging.debug('Calculating for: %s', root)
-        all_igraph_paths += [[int(g.vs[n]['name']) for n in path] for path in g.get_all_simple_paths(root, leaves)]
+    logging.info('Calculating all paths for %s vulnerable nodes', len(leaves))
+    all_igraph_paths += [[int(g.vs[n]['name']) for i, n in enumerate(path) if i > 0] for path in g.get_all_simple_paths(root, leaves)]
+
+    print(all_igraph_paths)
     return all_igraph_paths
 
 
