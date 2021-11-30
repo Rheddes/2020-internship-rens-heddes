@@ -11,9 +11,10 @@ import time
 
 import networkx as nx
 import pandas as pd
+import numpy as np
 from rbo import rbo
 
-from utils.timelimit import run_with_limited_time
+from utils.timelimit import run_with_limited_time, NO_RESULTS
 
 logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'exhaustive.log'), level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
 # logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
@@ -40,22 +41,28 @@ def remove_simple_loops(graph: RiskGraph):
     return graph
 
 
-def runtime_analysis_for(json_callgraph, outdir):
+def _get_project_name_from_path(path):
+    return path.split('/')[-1][:-len('-reduced.json')]
+
+
+
+def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
     list_of_lists = []
-    all_paths_time = 0.0
     callgraph = RiskGraph.create(*parse_JSON_file(json_callgraph), auto_update=False)
     if not callgraph.get_vulnerable_nodes():
         logging.warning('No vulnerable nodes skipping %s', json_callgraph)
+        if queue:
+            queue.put(NO_RESULTS)
         return
 
-    project = json_callgraph.split('/')[-1][:-len('-reduced.json')]
+    project = _get_project_name_from_path(json_callgraph)
     project_out_dir = os.path.join(outdir, project)
     os.mkdir(project_out_dir)
     change_log_file(os.path.join(project_out_dir, 'exhaustive.log'))
     output_logger = get_output_logger(project_out_dir)
 
     nodeset = set(callgraph.get_vulnerable_nodes())
-    for n in range(10, 240, 10):
+    for n in graphsizes:
         logging.info('Using subgraph of size: {}'.format(n))
         start = time.perf_counter()
 
@@ -64,16 +71,17 @@ def runtime_analysis_for(json_callgraph, outdir):
         all_execution_paths = calculate_all_execution_paths(subgraph)
         nodeset = nodeset.union(set(subgraph.nodes.keys()))
         nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
+
         all_paths_stop = time.perf_counter()
-        all_paths_time = all_paths_stop - start
+
         exhausive_risk_psv, _ = hong_exhaustive_search(subgraph, all_execution_paths)
 
         exhaustive_stop = time.perf_counter()
 
         subgraph.configure_for_model('d')
-
         hong_risks = hong_risk(subgraph)
         hong_risk_psv = list(sort_dict(calculate_risk_from_tuples(hong_risks, 1)).keys())
+
         hong_stop = time.perf_counter()
 
         betweenness_risks = {node: subgraph.get_inherent_risk_for(node) for node in subgraph.nodes.keys()}
@@ -93,7 +101,7 @@ def runtime_analysis_for(json_callgraph, outdir):
             exhausive_risk_psv,
             hong_risk_psv,
             model_risk_psv,
-            all_paths_time,
+            all_paths_stop-start,
             exhaustive_stop - all_paths_stop,
             hong_stop - exhaustive_stop,
             model_stop - hong_stop,
@@ -101,6 +109,7 @@ def runtime_analysis_for(json_callgraph, outdir):
         ]
         output_logger.info(record)
         list_of_lists.append(record)
+        queue.put(exhaustive_stop-start)
 
     df = pd.DataFrame(list_of_lists,
                       columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv',
@@ -168,14 +177,25 @@ def main(argv):
         outdir = os.path.join(config.BASE_DIR, 'out', 'runtime_analysis')
     if not timeout:
         timeout = 5*60.0
+
+    graphsizes = list(range(10, 240, 10))
+    df = pd.DataFrame()
+    df['graphsizes'] = graphsizes
+
+    callgraph_dir = 'test_callgraphs' if os.environ.get('USE_TEST_CALLGRAPHS', False) else 'reduced_callgraphs'
     clear_output_directory(outdir)
 
     if provided_callgraph:
-        runtime_analysis_for(os.path.join(config.BASE_DIR, 'reduced_callgraphs', provided_callgraph), outdir)
+        runtime_analysis_for(os.path.join(config.BASE_DIR, 'reduced_callgraphs', provided_callgraph), graphsizes, outdir)
         return
 
-    for file in glob.glob(os.path.join(config.BASE_DIR, 'reduced_callgraphs', '**', '*-reduced.json'), recursive=True):
-        run_with_limited_time(runtime_analysis_for, (os.path.join(config.BASE_DIR, 'reduced_callgraphs', file), outdir), timeout=timeout)
+    for file in glob.glob(os.path.join(config.BASE_DIR, callgraph_dir, '**', '*-reduced.json'), recursive=True):
+        runtimes = run_with_limited_time(runtime_analysis_for, (os.path.join(config.BASE_DIR, callgraph_dir, file), graphsizes, outdir), timeout=timeout)
+        if runtimes:
+            runtimes.extend([np.NaN] * (len(graphsizes)-len(runtimes)))
+            df['runtimes_{}'.format(_get_project_name_from_path(file))] = runtimes
+
+    df.to_csv(os.path.join(outdir, 'runtimes_for_projects.csv'))
 
 
 if __name__ == '__main__':
