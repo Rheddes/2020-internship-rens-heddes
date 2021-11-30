@@ -43,8 +43,11 @@ class TqdmToLogger(io.StringIO):
 
 # @func_set_timeout(lambda sg, previous_time: previous_time * 3 + len(sg)/3)
 def calculate_all_execution_paths(sg: RiskGraph, previous_time: float):
+    if all([sg.in_degree(v) == 0 for v in sg.get_vulnerable_nodes()]):
+        return [[v] for v in sg.get_vulnerable_nodes()]
     root = 'START'
-    leaves = [str(v) for v in sg.get_vulnerable_nodes().keys()]
+    leaves = [str(v) for v in sg.get_vulnerable_nodes()]
+
     logging.info('Converting to igraph')
     g = igraph.Graph(directed=True)
     g.add_vertices(map(str, sg.nodes))
