@@ -9,6 +9,7 @@ libraries.http
 .idea
 vulnerable
 reduced_callgraphs
+test_callgraphs
 
 .idea/
 

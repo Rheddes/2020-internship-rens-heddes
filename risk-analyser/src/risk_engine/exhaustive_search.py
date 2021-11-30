@@ -41,8 +41,7 @@ class TqdmToLogger(io.StringIO):
         self.logger.log(self.level, self.buf)
 
 
-# @func_set_timeout(lambda sg, previous_time: previous_time * 3 + len(sg)/3)
-def calculate_all_execution_paths(sg: RiskGraph, previous_time: float):
+def calculate_all_execution_paths(sg: RiskGraph):
     if all([sg.in_degree(v) == 0 for v in sg.get_vulnerable_nodes()]):
         return [[v] for v in sg.get_vulnerable_nodes()]
     root = 'START'
@@ -57,11 +56,11 @@ def calculate_all_execution_paths(sg: RiskGraph, previous_time: float):
     g.add_edges([(root, v) for v in leaves])
 
     all_igraph_paths = []
+    start = time.perf_counter()
     logging.info('Graph is DAG: %s', g.is_dag())
     logging.info('Calculating all paths for %s vulnerable nodes', len(leaves))
     all_igraph_paths += [[int(g.vs[n]['name']) for i, n in enumerate(path) if i > 0] for path in g.get_all_simple_paths(root, leaves)]
-
-    print(all_igraph_paths)
+    logging.info('All paths calculated, elapsed time = %s', time.perf_counter()-start)
     return all_igraph_paths
 
 
