@@ -60,6 +60,7 @@ def runtime_analysis_for(json_callgraph, outdir):
         start = time.perf_counter()
 
         subgraph = ff_sample_subgraph(callgraph, nodeset, min(n, len(callgraph.nodes)))
+        nx.write_gexf(subgraph, os.path.join(project_out_dir, f'subgraph_{n}.gexf'))
         all_execution_paths = calculate_all_execution_paths(subgraph)
         nodeset = nodeset.union(set(subgraph.nodes.keys()))
         nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
@@ -105,7 +106,7 @@ def runtime_analysis_for(json_callgraph, outdir):
                       columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv',
                                'all_paths_time', 'exhaustive_time', 'hong_time', 'model_time', 'score_time'])
 
-    df.to_csv(os.path.join(outdir, 'runtime_analysis.csv'), index=False)
+    df.to_csv(os.path.join(project_out_dir, 'runtime_analysis.csv'), index=False)
 
 
 def change_log_file(new_log_file):
@@ -144,7 +145,7 @@ def get_opts(argv):
     try:
         opts, args = getopt.getopt(argv[1:], 'hi:o:t:', ['ifile=', 'ofile=', 'timeout='])
     except getopt.GetoptError:
-        print(f'{scriptname} -t <timeout in seconds (optional, 60s default)> -i <inputfile (optional)> -o <outputdir from project root (optional)>')
+        print(f'{scriptname} -t <timeout in seconds (optional, 5min default)> -i <inputfile (optional)> -o <outputdir from project root (optional)>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
