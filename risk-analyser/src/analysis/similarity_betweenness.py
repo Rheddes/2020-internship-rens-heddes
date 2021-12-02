@@ -59,6 +59,19 @@ def exhaustive_centrality(graph: RiskGraph, all_paths=None):
     return exhaustive_centrality
 
 
+def calculate_centralities(subgraph: RiskGraph, all_paths=None):
+    exhaustive = exhaustive_centrality(subgraph, all_paths)
+    betweenness = nx.algorithms.centrality.betweenness_centrality(subgraph, endpoints=True)
+    coreachability = {node_id: len(nx.algorithms.dag.ancestors(subgraph, node_id)) for node_id in subgraph.nodes.keys()}
+
+    return {node: (exhaustive[node], betweenness[node], coreachability[node]) for node in subgraph}
+
+
+def compose(g, f):
+    def h(x):
+        return g(f(x))
+    return h
+
 
 def calculate_correlations(g, name, n=100):
     all_execution_paths = None
@@ -74,14 +87,10 @@ def calculate_correlations(g, name, n=100):
             pass
     if all_execution_paths is None:
         return ((0, 0), (0, 0))
-    exhaustive_centralities = np.fromiter(exhaustive_centrality(subgraph, all_execution_paths).values(), dtype=float)
-    betweenness_centralities = np.fromiter(
-        nx.algorithms.centrality.betweenness_centrality(subgraph, endpoints=True).values(), dtype=float)
-    coreachability_centrality = np.fromiter(
-        {node_id: len(nx.algorithms.dag.ancestors(subgraph, node_id)) for node_id in subgraph.nodes.keys()}.values(),
-        dtype=float)
-    return (spearmanr(betweenness_centralities, exhaustive_centralities), spearmanr(coreachability_centrality, exhaustive_centralities))
 
+    centralities = calculate_centralities(subgraph, all_execution_paths)
+    exhaustive, betweenness, coreachability = map(compose(np.array, list), zip(*centralities.values()))
+    return (spearmanr(betweenness, exhaustive), spearmanr(coreachability, exhaustive))
 
 
 def main():
