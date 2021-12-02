@@ -41,11 +41,14 @@ class TqdmToLogger(io.StringIO):
         self.logger.log(self.level, self.buf)
 
 
-def calculate_all_execution_paths(sg: RiskGraph):
-    if all([sg.in_degree(v) == 0 for v in sg.get_vulnerable_nodes()]):
-        return [[v] for v in sg.get_vulnerable_nodes()]
+def calculate_all_execution_paths(sg: RiskGraph, only_attack_paths=True):
     root = 'START'
-    leaves = [str(v) for v in sg.get_vulnerable_nodes()]
+    if only_attack_paths:
+        roots = [str(v) for v in sg.get_vulnerable_nodes()]
+        leaves = [str(v) for v in sg.get_vulnerable_nodes()]
+    else:
+        roots = [str(v) for v, d in sg.in_degree() if d == 0]
+        leaves = [str(v) for v, d in sg.out_degree() if d == 0]
 
     logging.info('Converting to igraph')
     g = igraph.Graph(directed=True)
@@ -53,7 +56,7 @@ def calculate_all_execution_paths(sg: RiskGraph):
     g.add_edges([(str(u), str(v)) for (u, v) in sg.edges])
 
     g.add_vertex(root)
-    g.add_edges([(root, v) for v in leaves])
+    g.add_edges([(root, v) for v in roots])
 
     all_igraph_paths = []
     start = time.perf_counter()

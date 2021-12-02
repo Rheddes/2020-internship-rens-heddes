@@ -81,7 +81,7 @@ def calculate_correlations(g, name, n=100):
             with timeout(seconds=10):
                 subgraph = ff_sample_subgraph(g, g.get_vulnerable_nodes().keys(),
                                               min(n, len(g.nodes)))  # math.floor(len(graph) * 0.15))
-                all_execution_paths = calculate_all_execution_paths(subgraph)
+                all_execution_paths = calculate_all_execution_paths(subgraph, only_attack_paths=False)
             break
         except TimeoutError:
             pass
@@ -105,7 +105,6 @@ def main():
         if not len(graph.get_vulnerable_nodes()):
             print('[{}] Skipping: {}'.format(datetime.now(), name))
             continue
-        vulnerability_density = len(graph.get_vulnerable_nodes()) / len(graph)
 
         (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph, name)
         retries = 0
@@ -113,6 +112,7 @@ def main():
             (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph, name)
             retries += 1
 
+        vulnerability_density = len(graph.get_vulnerable_nodes()) / len(graph)
         shortname = re.split(r'([a-zA-Z\-]+)-[0-9\.a-zA-Z\-]+(?=-reduced\.json)', name)[1]
         list_of_lists.append(
             [name, shortname, vulnerability_density, correlation_between, p_value_between, correlation_co, p_value_co])
