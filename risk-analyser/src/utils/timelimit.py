@@ -24,7 +24,7 @@ def dump_queue(queue):
     return result
 
 
-def run_with_limited_time(func, args=None, kwargs=None, timeout=5):
+def run_with_limited_time(func, args=None, kwargs=None, timeout=5, throws=False):
     """Runs a function with time limit
 
     :param func: The function to run
@@ -46,4 +46,6 @@ def run_with_limited_time(func, args=None, kwargs=None, timeout=5):
     if p.is_alive():
         p.terminate()
         logging.warning('Function timeout {} with args {}'.format(func, args))
+        if throws:
+            raise TimeoutError('Function timeout {} with args {}'.format(func, args))
     return dump_queue(results)
