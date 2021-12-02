@@ -12,30 +12,13 @@ from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
 import networkx as nx
 
-from itertools import chain, product, starmap
-from functools import partial
-from copy import deepcopy
-import heapq
 
 from datetime import datetime
 
-import signal
 from scipy.stats import spearmanr
 import numpy as np
 
-class timeout:
-    def __init__(self, seconds=1, error_message='Timeout'):
-        self.seconds = seconds
-        self.error_message = error_message
-    def handle_timeout(self, signum, frame):
-        raise TimeoutError(self.error_message)
-    def __enter__(self):
-        signal.signal(signal.SIGALRM, self.handle_timeout)
-        signal.alarm(self.seconds)
-    def __exit__(self, type, value, traceback):
-        signal.alarm(0)
-
-chaini = chain.from_iterable
+from utils.timelimit import run_with_limited_time
 
 callgraphs = [
     'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
@@ -81,15 +64,13 @@ def calculate_correlations(g, name, n=100):
     for retry in range(3):
         try:
             print('[{}] Processing (attempt {}): {}'.format(datetime.now(), retry, name))
-            with timeout(seconds=50):
-                subgraph = ff_sample_subgraph(g, g.get_vulnerable_nodes().keys(),
-                                              min(n, len(g.nodes)))  # math.floor(len(graph) * 0.15))
-                all_execution_paths = calculate_all_execution_paths(subgraph, only_attack_paths=False)
+            subgraph = ff_sample_subgraph(g, g.get_vulnerable_nodes().keys(), min(n, len(g.nodes)))
+            all_execution_paths = run_with_limited_time(calculate_all_execution_paths, (subgraph, ), {'only_attack_paths': False}, timeout=20, throws=True)[0]
             break
         except TimeoutError:
             pass
     if all_execution_paths is None:
-        return ((0, 0), (0, 0))
+        return (0, 0), (0, 0)
 
     centralities = calculate_centralities(subgraph, all_execution_paths)
     exhaustive, betweenness, coreachability = map(compose(np.array, list), zip(*centralities.values()))
