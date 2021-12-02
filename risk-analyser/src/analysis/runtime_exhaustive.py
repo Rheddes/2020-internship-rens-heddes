@@ -70,7 +70,6 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
         nx.write_gexf(subgraph, os.path.join(project_out_dir, f'subgraph_{n}.gexf'))
         all_execution_paths = calculate_all_execution_paths(subgraph)
         nodeset = nodeset.union(set(subgraph.nodes.keys()))
-        nx.write_gexf(subgraph, os.path.join(config.BASE_DIR, 'out', 'subgraph.gexf'))
 
         all_paths_stop = time.perf_counter()
 
@@ -109,7 +108,7 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
         ]
         output_logger.info(record)
         list_of_lists.append(record)
-        queue.put(exhaustive_stop-start)
+        queue.put((n, len(subgraph.edges), exhaustive_stop-start))
 
     df = pd.DataFrame(list_of_lists,
                       columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv',
@@ -178,7 +177,7 @@ def main(argv):
     if not timeout:
         timeout = 5*60.0
 
-    graphsizes = list(range(10, 240, 10))
+    graphsizes = list(range(10, 210, 10))
     df = pd.DataFrame()
     df['graphsizes'] = graphsizes
 
@@ -189,10 +188,18 @@ def main(argv):
         runtime_analysis_for(os.path.join(config.BASE_DIR, 'reduced_callgraphs', provided_callgraph), graphsizes, outdir)
         return
 
+    # callgraphs = [
+    #     'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
+    #     'com.disneystreaming.pg2k4j.pg2k4j-1.0.2-reduced.json',
+    #     'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
+    # ]
     for file in glob.glob(os.path.join(config.BASE_DIR, callgraph_dir, '**', '*-reduced.json'), recursive=True):
+    # for file in callgraphs:
         runtimes = run_with_limited_time(runtime_analysis_for, (os.path.join(config.BASE_DIR, callgraph_dir, file), graphsizes, outdir), timeout=timeout)
         if runtimes:
             runtimes.extend([np.NaN] * (len(graphsizes)-len(runtimes)))
+            print('Runtimes for: ', file)
+            print(runtimes)
             df['runtimes_{}'.format(_get_project_name_from_path(file))] = runtimes
 
     df.to_csv(os.path.join(outdir, 'runtimes_for_projects.csv'))

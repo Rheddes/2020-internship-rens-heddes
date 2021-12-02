@@ -4,6 +4,7 @@ import operator
 import os
 import re
 
+import logging
 import pandas as pd 
 import config
 from risk_engine.exhaustive_search import calculate_all_execution_paths
@@ -44,6 +45,8 @@ callgraphs = [
     # 'org.mandas.docker-client-2.0.0-SNAPSHOT-reduced.json',
 ]
 
+logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
+
 
 def exhaustive_centrality(graph: RiskGraph, all_paths=None):
     if all_paths is None:
@@ -78,7 +81,7 @@ def calculate_correlations(g, name, n=100):
     for retry in range(3):
         try:
             print('[{}] Processing (attempt {}): {}'.format(datetime.now(), retry, name))
-            with timeout(seconds=10):
+            with timeout(seconds=50):
                 subgraph = ff_sample_subgraph(g, g.get_vulnerable_nodes().keys(),
                                               min(n, len(g.nodes)))  # math.floor(len(graph) * 0.15))
                 all_execution_paths = calculate_all_execution_paths(subgraph)
@@ -109,7 +112,7 @@ def main():
 
         (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph, name)
         retries = 0
-        while retries < 5 and (correlation_between < 0 or correlation_co < 0):
+        while retries < 50 and (correlation_between < 0 or correlation_co < 0):
             (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph, name)
             retries += 1
 
