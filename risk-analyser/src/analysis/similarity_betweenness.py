@@ -60,7 +60,7 @@ def exhaustive_centrality(graph: RiskGraph, all_paths=None):
 
 
 
-def calculate_correlations(g, n=60):
+def calculate_correlations(g, name, n=100):
     all_execution_paths = None
     for retry in range(3):
         try:
@@ -83,27 +83,36 @@ def calculate_correlations(g, n=60):
     return (spearmanr(betweenness_centralities, exhaustive_centralities), spearmanr(coreachability_centrality, exhaustive_centralities))
 
 
-if __name__ == '__main__':
+
+def main():
     list_of_lists = []
-    for file in glob.glob(os.path.join(config.BASE_DIR, 'repos', '**', '*-reduced.json'), recursive=True):
-    # for file in [os.path.join(config.BASE_DIR, 'repos', callgraph) for callgraph in callgraphs]:
+    for file in glob.glob(os.path.join(config.BASE_DIR, 'reduced_callgraphs', '**', '*-reduced.json'), recursive=True):
+        # for file in [os.path.join(config.BASE_DIR, 'repos', callgraph) for callgraph in callgraphs]:
         name = file.split('/')[-1]
+        if name == 'pl.edu.icm.unity.unity-server-parent-3.3.0-SNAPSHOT-reduced.json' or name == 'cn.vertxup.vertx-gaia-0.5.3-SNAPSHOT-reduced.json':
+            continue
         print('[{}] Reading: {}'.format(datetime.now(), name))
-        if name == 'pl.edu.icm.unity.unity-server-parent-3.3.0-SNAPSHOT-reduced.json':
-            break
         graph = RiskGraph.create(*parse_JSON_file(file), auto_update=False)
         if not len(graph.get_vulnerable_nodes()):
             print('[{}] Skipping: {}'.format(datetime.now(), name))
             continue
+        vulnerability_density = len(graph.get_vulnerable_nodes()) / len(graph)
 
-
-        (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph)
-        while correlation_between < 0 or correlation_co < 0:
-            (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph)
-
+        (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph, name)
+        retries = 0
+        while retries < 5 and (correlation_between < 0 or correlation_co < 0):
+            (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph, name)
+            retries += 1
 
         shortname = re.split(r'([a-zA-Z\-]+)-[0-9\.a-zA-Z\-]+(?=-reduced\.json)', name)[1]
-        list_of_lists.append([name, shortname, correlation_between, p_value_between, correlation_co, p_value_co])
+        list_of_lists.append(
+            [name, shortname, vulnerability_density, correlation_between, p_value_between, correlation_co, p_value_co])
 
-    df = pd.DataFrame(list_of_lists, columns=['name', 'shortname', 'correlation_betweenness', 'p_value_betweenness', 'correlation_coreachability', 'p_value_coreachability'])
+    df = pd.DataFrame(list_of_lists, columns=['name', 'shortname', 'vulnerability_density', 'correlation_betweenness',
+                                              'p_value_betweenness', 'correlation_coreachability',
+                                              'p_value_coreachability'])
     df.to_csv('correlation.csv', index=False)
+
+
+if __name__ == '__main__':
+    main()
