@@ -1,5 +1,8 @@
 # 2020-internship-rens-heddes
 
+
+[![DOI](https://zenodo.org/badge/358278903.svg)](https://zenodo.org/badge/latestdoi/358278903)
+
 ## Generating all tables and figures
 
 ```bash
