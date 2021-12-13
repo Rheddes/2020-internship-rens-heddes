@@ -108,7 +108,8 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
         ]
         output_logger.info(record)
         list_of_lists.append(record)
-        queue.put((n, len(subgraph.edges), exhaustive_stop-start))
+        if queue:
+            queue.put((n, len(subgraph.edges), len(all_execution_paths), exhaustive_stop-start))
 
     df = pd.DataFrame(list_of_lists,
                       columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv',
@@ -159,9 +160,9 @@ def get_opts(argv):
         if opt == '-h':
             print(f'{scriptname} -t <timeout> -i <inputfile> -o <outputdir from project root>')
             sys.exit()
-        elif opt in ("-i", "--ifile"):
+        elif opt in ('-i', '--ifile'):
             inputfile = arg
-        elif opt in ("-o", "--ofile"):
+        elif opt in ('-o', '--ofile'):
             outputdir = os.path.join(config.BASE_DIR, arg)
         elif opt in ('-t', '--timeout'):
             timeout = float(arg)
@@ -177,7 +178,8 @@ def main(argv):
     if not timeout:
         timeout = 5*60.0
 
-    graphsizes = list(range(10, 210, 10))
+    # graphsizes = [230]
+    graphsizes = list(range(10, 30, 10))
     df = pd.DataFrame()
     df['graphsizes'] = graphsizes
 

@@ -46,6 +46,6 @@ if __name__ == '__main__':
     df['vulnerable_ratio'] = df.eval('vulnerable/nodes').fillna(0).replace({np.inf: 0})
     print(df)
     basic_stats(df)
-    # df.to_csv('call_graph_stats.csv')
+    df.to_csv(os.path.join(config.BASE_DIR, 'out', 'call_graph_stats.csv'))
 
 

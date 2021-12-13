@@ -6,7 +6,6 @@ libraries.http
 *.env.json
 .env
 .idea
-data
 
 .idea/
 

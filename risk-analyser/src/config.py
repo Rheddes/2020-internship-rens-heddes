@@ -9,6 +9,7 @@ CVSS_SCORE_VERSION = 'scoreCVSS3'
 if os.path.exists(os.path.join(BASE_DIR, '.env')):
     load_dotenv(os.path.join(BASE_DIR, '.env'))
 
+SHORT_NAME_REGEX = r'([a-zA-Z0-9\-]+)-[0-9\.a-zA-Z\-]+(?=-reduced\.json)'
 
 def get_db_credentials():
     return {
