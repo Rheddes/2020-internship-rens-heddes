@@ -7,5 +7,6 @@ cd data-analysis
 virtualenv env
 source env/bin/activate
 pip install -r requirements.txt
-python -m src -p "./data/update.p"
+cd src
+python run_all.py -p "./data/update_data.p"
 ```
