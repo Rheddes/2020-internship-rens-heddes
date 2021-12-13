@@ -2,16 +2,14 @@ import logging
 import os
 import pickle
 
-from sqlalchemy import create_engine
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import stats
-import mysql
 
-import config
-from latex import latex_percentage, latex_float, latex_int, process_and_write_latex_table
+from utils.config import BASE_DIR, get_db_connection, ensure_path
+from utils.latex import latex_percentage, latex_float, latex_int, process_and_write_latex_table
 
 
 class VulnerabilityHistory:
@@ -30,7 +28,7 @@ class VulnerabilityHistory:
         Instead of loading data from DB we can also read a pickle dump, make sure the path is set correct.
         :return: Dataframe with all update data
         """
-        df = pickle.load(open(os.path.join(config.BASE_DIR, update_df_path), 'rb'))
+        df = pickle.load(open(os.path.join(BASE_DIR, update_df_path), 'rb'))
         return df
 
     @staticmethod
@@ -44,7 +42,7 @@ class VulnerabilityHistory:
                     WHERE is_fork = 0;
                 """
         # v.cve = 'CVE-2020-8840' AND
-        df = pd.read_sql(query, con=config.get_db_connection(), parse_dates=['commit_date', 'old_release_date', 'new_release_date', 'first_fix_release_date', 'disclosure_date'])
+        df = pd.read_sql(query, con=get_db_connection(), parse_dates=['commit_date', 'old_release_date', 'new_release_date', 'first_fix_release_date', 'disclosure_date'])
         # deduplicate 'cve' column names
         df.columns = pd.io.parsers.ParserBase({'names': df.columns})._maybe_dedup_names(df.columns)
         return df
@@ -74,7 +72,7 @@ class VulnerabilityHistory:
                     column_format='|l|r|', label='tab:normality_stdev', formatters=[latex_int, latex_percentage],
                     caption='Percentage of datapoints that lie within 1, 2 \& 3 standard deviations from the mean in the observed distribution',
                     header=[r'\textbf{Range}', r'\textbf{Percentage of data within range}'])
-        process_and_write_latex_table(table_string, os.path.join(config.BASE_DIR, output_path, 'datapoints_in_standarddeviations.tex'))
+        process_and_write_latex_table(table_string, os.path.join(BASE_DIR, output_path, 'datapoints_in_standarddeviations.tex'))
 
     def data_overview(self, output_path):
         table_data = self.raw_df.groupby('repo_cve').agg({'repo_id': 'nunique', 'is_fix_update': 'sum'}).astype({'is_fix_update': 'int'}).sort_values(by='repo_id', ascending=False).reset_index()
@@ -84,7 +82,7 @@ class VulnerabilityHistory:
                       formatters=[None, latex_int, latex_int],
                       caption='The number of scanned repositories per vulnerability',
                       header=[r'\textbf{CVE}', r'\textbf{Found repositories}', r'\textbf{Found fix updates for}'])
-        process_and_write_latex_table(table_string, os.path.join(config.BASE_DIR, output_path, 'scanned_repos.tex'))
+        process_and_write_latex_table(table_string, os.path.join(BASE_DIR, output_path, 'scanned_repos.tex'))
 
     def scatter_dist(self, output_path):
         df = self.df
@@ -100,7 +98,7 @@ class VulnerabilityHistory:
         sns.ecdfplot(data, palette=['red', 'blue'], ax=axs[1])
         axs[1].set_title('Cumulative distribution of standardised\nlog update delays')
         axs[1].set_xlabel('Standardised log update delay')
-        plt.savefig(os.path.join(config.BASE_DIR, output_path, 'all_update_delays.pdf'))
+        plt.savefig(os.path.join(BASE_DIR, output_path, 'all_update_delays.pdf'))
         plt.show()
 
         df_fix_updates = df.query('is_fix_update == 1 and commit_date > disclosure_date').sort_values(by='log_update_delay_Z')
@@ -118,12 +116,12 @@ class VulnerabilityHistory:
             plt.ylabel('Normalized update delay deviation from mean')
             plt.title('Distribution of normalised fix update delay deviations')
             g.set_xticklabels([])
-            plt.savefig(os.path.join(config.BASE_DIR, output_path, 'fix_update_delays.pdf'))
+            plt.savefig(os.path.join(BASE_DIR, output_path, 'fix_update_delays.pdf'))
             plt.show()
 
         self.values_within_standard_deviation_table(df, output_path)
 
-        config.ensure_path(os.path.join(config.BASE_DIR, output_path, 'fix_update_delays'))
+        ensure_path(os.path.join(BASE_DIR, output_path, 'fix_update_delays'))
         for cve in df_fix_updates['cve'].unique():
             df_cve = df_fix_updates[df_fix_updates['cve'] == cve]
             if df_cve.shape[0] < 20:
@@ -139,7 +137,7 @@ class VulnerabilityHistory:
             for n, label in enumerate(g.get_xticklabels()):
                 if label.get_text() not in vulnerable_short_names:
                     label.set_visible(False)
-            plt.savefig(os.path.join(config.BASE_DIR, output_path, 'fix_update_delays', '{}.pdf'.format(cve)))
+            plt.savefig(os.path.join(BASE_DIR, output_path, 'fix_update_delays', '{}.pdf'.format(cve)))
             plt.show()
 
         df['cvss_buckets'] = df['v3BaseScore'].fillna(0.0).round().astype(int)
@@ -147,7 +145,7 @@ class VulnerabilityHistory:
         plt.title('Effect of CVSS score on update behaviour')
         plt.xlabel('CVSS score (rounded to nearest integer)')
         plt.ylabel('Standardised log update delay')
-        plt.savefig(os.path.join(config.BASE_DIR, output_path, 'cvss_update_delays.pdf'))
+        plt.savefig(os.path.join(BASE_DIR, output_path, 'cvss_update_delays.pdf'))
         plt.show()
 
     def plot_for_single_repo(self, output_path, repo_id=745):
@@ -160,8 +158,8 @@ class VulnerabilityHistory:
         df = self.df
         repo_df = df[df['repo_id'] == repo_id]
         short_name = repo_df.iloc[0].full_name.split('/')[-1]
-        repo_output_dir = os.path.join(config.BASE_DIR, output_path, short_name)
-        config.ensure_path(repo_output_dir)
+        repo_output_dir = os.path.join(BASE_DIR, output_path, short_name)
+        ensure_path(repo_output_dir)
         sns.displot(data=repo_df, x='update_delay', bins=30)
         plt.xlabel('Update delay in days')
         # plt.xlim(0, 800)

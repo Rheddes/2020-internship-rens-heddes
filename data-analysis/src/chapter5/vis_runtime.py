@@ -3,10 +3,8 @@ import re
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import numpy as np
-import scipy.optimize
 
-import config
+from utils.config import BASE_DIR, SHORT_NAME_REGEX
 
 # list_of_lists = [
 #     [10, 1.0, 1.0, ['CVE-2017-17485'], ['CVE-2017-17485', 'CVE-2018-8037', 'CVE-2018-1305', 'CVE-2019-16943', 'CVE-2019-0232', 'CVE-2019-17267', 'CVE-2019-20330', 'CVE-2018-19361', 'CVE-2019-14892', 'CVE-2018-19360', 'CVE-2019-14379', 'CVE-2019-17531', 'CVE-2019-14893', 'CVE-2020-8840', 'CVE-2019-16942', 'CVE-2018-19362', 'CVE-2019-17563', 'CVE-2018-8014', 'CVE-2019-16335', 'CVE-2018-1304', 'CVE-2018-1336', 'CVE-2019-10072', 'CVE-2018-8034', 'CVE-2017-3586', 'CVE-2019-0221', 'CVE-2018-11784'], ['CVE-2017-17485', 'CVE-2018-8037', 'CVE-2018-1305', 'CVE-2019-14893', 'CVE-2019-16335', 'CVE-2019-14892', 'CVE-2020-8840', 'CVE-2019-16942', 'CVE-2019-16943', 'CVE-2019-17531', 'CVE-2018-19362', 'CVE-2019-14379', 'CVE-2019-17267', 'CVE-2018-19361', 'CVE-2018-19360', 'CVE-2019-20330', 'CVE-2019-10072', 'CVE-2019-17563', 'CVE-2018-8034', 'CVE-2018-8014', 'CVE-2018-11784', 'CVE-2019-0221', 'CVE-2019-0232', 'CVE-2018-1304', 'CVE-2018-1336', 'CVE-2017-3586'], 0.022941068004001863, 0.6394310889954795, 0.007146595002268441, 0.00034315600350964814, 2.1790998289361596e-05],
@@ -49,7 +47,7 @@ def plot_exhaustive_runtime_analysis(csv_path, output_path):
     plt.xlabel('Subgraph size (nodes)')
     plt.title('Runtime for increasing graph sizes\n (limit of 15 minutes per project)')
     plt.tight_layout()
-    plt.savefig(os.path.join(config.BASE_DIR, output_path, 'runtime_all_projects.pdf'))
+    plt.savefig(os.path.join(BASE_DIR, output_path, 'runtime_all_projects.pdf'))
     plt.show()
 
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -60,14 +58,14 @@ def plot_exhaustive_runtime_analysis(csv_path, output_path):
     plt.xlabel('Subgraph size (nodes)')
     plt.title('Runtime for increasing graph sizes\n for projects which reached 15 minute time limit')
     plt.tight_layout()
-    plt.savefig(os.path.join(config.BASE_DIR, output_path, 'runtime_timedout.pdf'))
+    plt.savefig(os.path.join(BASE_DIR, output_path, 'runtime_timedout.pdf'))
     plt.show()
 
 
 def plot_exhaustive_runtime_factors(path_to_csv, output_path):
     df = pd.read_csv(path_to_csv)
     df['density'] = df.edges / df.nodes
-    df['short_name'] = df.apply(lambda row: re.split(config.SHORT_NAME_REGEX, row['project'])[1], axis=1)
+    df['short_name'] = df.apply(lambda row: re.split(SHORT_NAME_REGEX, row['project'])[1], axis=1)
 
 
     colors = {project: plt.cm.tab10(i) for i, project in enumerate(df.short_name.unique())}
@@ -82,7 +80,7 @@ def plot_exhaustive_runtime_factors(path_to_csv, output_path):
     plt.ylabel('Runtime for exhaustive search (seconds)')
     plt.title('Affect of edge over node density on runtime\nfor exhaustive search')
     plt.tight_layout()
-    plt.savefig(os.path.join(config.BASE_DIR, output_path, 'runtime_density.pdf'))
+    plt.savefig(os.path.join(BASE_DIR, output_path, 'runtime_density.pdf'))
     plt.show()
 
     fig, ax = plt.subplots(figsize=(9, 5))
@@ -93,6 +91,6 @@ def plot_exhaustive_runtime_factors(path_to_csv, output_path):
     plt.xlabel('Graph size (nodes)')
     plt.title('Number of attack paths found for increasing graph sizes')
     plt.tight_layout()
-    plt.savefig(os.path.join(config.BASE_DIR, output_path, 'paths.pdf'))
+    plt.savefig(os.path.join(BASE_DIR, output_path, 'paths.pdf'))
     plt.show()
 

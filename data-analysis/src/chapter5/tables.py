@@ -3,14 +3,14 @@ import re
 
 import pandas as pd
 
-import config
-from latex import latex_float, latex_int, process_and_write_latex_table
+from utils.config import BASE_DIR, SHORT_NAME_REGEX
+from utils.latex import latex_float, latex_int, process_and_write_latex_table
 
 
 def call_graph_properties(csv_path, output_path):
     df = pd.read_csv(csv_path)
     df = df[df['vulnerable'] > 0].sort_values(by='vulnerabilities', ascending=False)
-    df['short_name'] = df.apply(lambda row: re.split(config.SHORT_NAME_REGEX, row['callgraph'])[1], axis=1)
+    df['short_name'] = df.apply(lambda row: re.split(SHORT_NAME_REGEX, row['callgraph'])[1], axis=1)
     table_string = df.to_latex(
         index=False, escape=False,
         columns=['short_name', 'nodes', 'edges', 'vulnerable', 'vulnerabilities'],
@@ -19,7 +19,7 @@ def call_graph_properties(csv_path, output_path):
         caption='Call-graph properties of the analysed projects',
         header=[r'\textbf{Project}', r'\textbf{Nodes}', r'\textbf{Edges}', r'\textbf{Vulnerable nodes}',
                 r'\textbf{Vulnerabilities}'])
-    process_and_write_latex_table(table_string, os.path.join(config.BASE_DIR, output_path, 'projects.tex'))
+    process_and_write_latex_table(table_string, os.path.join(BASE_DIR, output_path, 'projects.tex'))
 
 
 def centrality_correlations(csv_path, output_path):
@@ -45,4 +45,4 @@ def centrality_correlations(csv_path, output_path):
                                                             latex_float(means['correlation_coreachability']))
     table_string = table_string.replace(r'\bottomrule', f'\\hline\n\\hline\n{mean_row}\n\\bottomrule')
 
-    process_and_write_latex_table(table_string, os.path.join(config.BASE_DIR, output_path, 'correlation.tex'), )
+    process_and_write_latex_table(table_string, os.path.join(BASE_DIR, output_path, 'correlation.tex'), )
