@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 CLONE_DIR = os.path.join(BASE_DIR, 'repos')
 OUT_DIR = os.path.join(BASE_DIR, 'out')
 CVSS_SCORE_VERSION = 'scoreCVSS3'

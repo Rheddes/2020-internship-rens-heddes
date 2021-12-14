@@ -180,7 +180,7 @@ def main(argv):
         timeout = 5*60.0
 
     # graphsizes = [230]
-    graphsizes = list(range(10, 30, 10))
+    graphsizes = list(range(10, 260, 10))
     df_data = []
 
     callgraph_dir = 'test_callgraphs' if os.environ.get('USE_TEST_CALLGRAPHS', False) else 'reduced_callgraphs'
