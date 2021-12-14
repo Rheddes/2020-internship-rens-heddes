@@ -2,7 +2,6 @@ from __future__ import annotations
 import itertools
 import json
 import logging
-import math
 import re
 import time
 
@@ -25,7 +24,7 @@ from cvss import CVSS3
 from cvss.cvss3 import round_up
 import numpy as np
 
-import config
+from utils import config
 
 
 def parse_JSON_file(filename: str) -> Tuple[List, List, Dict, pd.DataFrame, Set]:

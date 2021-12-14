@@ -1,7 +1,7 @@
 import re
 
 import pandas as pd
-import config
+from utils import config
 import os
 
 
@@ -29,7 +29,7 @@ def correlation():
                 formatters=[None, latex_float, None, None],
                 columns=['shortname', 'vulnerability_density', 'correlation_p_betweenness', 'correlation_p_coreachability'],
                 header=[r'\textbf{Project}', r'\multicolumn{1}{|p{2.2cm}|}{\centering \textbf{Vulnerability} \\ \textbf{Density}}', r'\multicolumn{1}{|p{2.2cm}|}{\centering \textbf{Correlation} \\ \textbf{Betweenness}}', r'\multicolumn{1}{|p{3cm}|}{\centering \textbf{Correlation/P-value} \\ \textbf{Co-reachability/P-value}}']
-    )
+                )
 
 
 if __name__ == '__main__':

@@ -3,8 +3,8 @@ import logging
 import os
 from mysql.connector import connect
 
-import config
-from config import get_db_credentials
+from utils import config
+from utils.config import get_db_credentials
 from repo_analyser.repo_analyser import RepoAnalyser
 
 

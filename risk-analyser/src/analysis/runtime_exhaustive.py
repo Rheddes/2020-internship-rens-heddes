@@ -2,10 +2,11 @@ import getopt
 import glob
 import logging
 import os.path
+import re
 import shutil
 import sys
 
-import config
+from utils import config
 
 import time
 
@@ -42,8 +43,7 @@ def remove_simple_loops(graph: RiskGraph):
 
 
 def _get_project_name_from_path(path):
-    return path.split('/')[-1][:-len('-reduced.json')]
-
+    return path.split('/')[-1]
 
 
 def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
@@ -55,8 +55,9 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
             queue.put(NO_RESULTS)
         return
 
-    project = _get_project_name_from_path(json_callgraph)
-    project_out_dir = os.path.join(outdir, project)
+    full_project_name = _get_project_name_from_path(json_callgraph)
+    short_name = re.split(config.SHORT_NAME_REGEX, full_project_name)[1]
+    project_out_dir = os.path.join(outdir, short_name)
     os.mkdir(project_out_dir)
     change_log_file(os.path.join(project_out_dir, 'exhaustive.log'))
     output_logger = get_output_logger(project_out_dir)
@@ -109,7 +110,7 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
         output_logger.info(record)
         list_of_lists.append(record)
         if queue:
-            queue.put((n, len(subgraph.edges), len(all_execution_paths), exhaustive_stop-start))
+            queue.put([full_project_name, short_name, n, len(subgraph.edges), len(all_execution_paths), exhaustive_stop-start, model_rbo, hong_rbo])
 
     df = pd.DataFrame(list_of_lists,
                       columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv',
@@ -180,8 +181,7 @@ def main(argv):
 
     # graphsizes = [230]
     graphsizes = list(range(10, 30, 10))
-    df = pd.DataFrame()
-    df['graphsizes'] = graphsizes
+    df_data = []
 
     callgraph_dir = 'test_callgraphs' if os.environ.get('USE_TEST_CALLGRAPHS', False) else 'reduced_callgraphs'
     clear_output_directory(outdir)
@@ -190,20 +190,14 @@ def main(argv):
         runtime_analysis_for(os.path.join(config.BASE_DIR, 'reduced_callgraphs', provided_callgraph), graphsizes, outdir)
         return
 
-    # callgraphs = [
-    #     'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
-    #     'com.disneystreaming.pg2k4j.pg2k4j-1.0.2-reduced.json',
-    #     'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
-    # ]
-    for file in glob.glob(os.path.join(config.BASE_DIR, callgraph_dir, '**', '*-reduced.json'), recursive=True):
-    # for file in callgraphs:
-        runtimes = run_with_limited_time(runtime_analysis_for, (os.path.join(config.BASE_DIR, callgraph_dir, file), graphsizes, outdir), timeout=timeout)
-        if runtimes:
-            runtimes.extend([np.NaN] * (len(graphsizes)-len(runtimes)))
-            print('Runtimes for: ', file)
-            print(runtimes)
-            df['runtimes_{}'.format(_get_project_name_from_path(file))] = runtimes
 
+    for file in glob.glob(os.path.join(config.BASE_DIR, callgraph_dir, '**', '*-reduced.json'), recursive=True):
+        results = run_with_limited_time(runtime_analysis_for, (os.path.join(config.BASE_DIR, callgraph_dir, file), graphsizes, outdir), timeout=timeout)
+        print(f'Results for {file}: ', results)
+        if results:
+            df_data += results
+
+    df = pd.DataFrame(df_data, columns=['full_name', 'short_name', 'nodes', 'edges', 'execution_paths', 'runtime', 'Model D RBO', 'HARM RBO'])
     df.to_csv(os.path.join(outdir, 'runtimes_for_projects.csv'))
 
 

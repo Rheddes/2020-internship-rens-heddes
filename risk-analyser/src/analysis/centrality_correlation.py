@@ -1,12 +1,10 @@
-import difflib
 import glob
-import operator
 import os
 import re
 
 import logging
-import pandas as pd 
-import config
+import pandas as pd
+from utils import config
 from risk_engine.exhaustive_search import calculate_all_execution_paths
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph

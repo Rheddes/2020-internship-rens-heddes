@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 from risk_engine.graph import parse_JSON_file, RiskGraph
-from src import config
+from utils import config
 
 
 def basic_stats(dataframe):

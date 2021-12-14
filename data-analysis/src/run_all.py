@@ -14,7 +14,7 @@ from utils.config import ensure_path, BASE_DIR
 def get_opts(argv):
     update_dataframe_path = None
     scriptname = argv[0].split('/')[-1]
-    help_string = f'{scriptname} --update-dataframe <path to dataframe.p containing update data> '
+    help_string = f'{scriptname} --update-dataframe "<path to dataframe.p containing update data>"'
     try:
         opts, args = getopt.getopt(argv[1:], 'hd:', ['update-dataframe='])
     except getopt.GetoptError as e:

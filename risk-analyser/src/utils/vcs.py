@@ -3,7 +3,7 @@ import shutil
 
 from git import Git, Repo
 
-from config import CLONE_DIR
+from utils.config import CLONE_DIR
 
 
 def ensure_repo_dir():

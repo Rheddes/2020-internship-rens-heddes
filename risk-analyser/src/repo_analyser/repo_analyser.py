@@ -1,15 +1,14 @@
 import glob
 import logging
 import os
-import sys
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
 from git import Repo
 
-import config
-from config import BASE_DIR
+from utils import config
+from utils.config import BASE_DIR
 from risk_engine.graph import RiskGraph, parse_JSON_file, _combine_scores
 from utils.vcs import clone_repository
 import xml.etree.ElementTree as ET

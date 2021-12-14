@@ -3,12 +3,11 @@ import glob
 import os
 
 import pandas as pd
-import config
+from utils import config
 from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_exhaustive_search
 from risk_engine.graph import RiskGraph, parse_JSON_file
 from utils.graph_sampling import ff_sample_subgraph
 
-from itertools import chain
 import heapq
 from datetime import datetime
 
