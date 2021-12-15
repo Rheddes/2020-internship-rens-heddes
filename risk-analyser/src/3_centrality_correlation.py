@@ -18,14 +18,6 @@ import numpy as np
 
 from utils.timelimit import run_with_limited_time
 
-callgraphs = [
-    'org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json',
-    'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json',
-    'com.genersoft.wvp-1.5.10.RELEASE-reduced.json',
-    # 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json',
-    # 'org.mandas.docker-client-2.0.0-SNAPSHOT-reduced.json',
-]
-
 logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
 
 
@@ -59,6 +51,7 @@ def compose(g, f):
 
 def calculate_correlations(g, name, n=100):
     all_execution_paths = None
+    subgraph = None
     for retry in range(3):
         try:
             print('[{}] Processing (attempt {}): {}'.format(datetime.now(), retry, name))
@@ -67,7 +60,7 @@ def calculate_correlations(g, name, n=100):
             break
         except TimeoutError:
             pass
-    if all_execution_paths is None:
+    if all_execution_paths is None or subgraph is None:
         return (0, 0), (0, 0)
 
     centralities = calculate_centralities(subgraph, all_execution_paths)

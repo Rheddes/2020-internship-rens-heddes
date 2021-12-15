@@ -6,30 +6,24 @@ import re
 import shutil
 import sys
 
+from risk_engine.HARM import HARM_risk, calculate_risk_from_tuples
 from utils import config
 
 import time
 
 import networkx as nx
 import pandas as pd
-import numpy as np
 from rbo import rbo
 
+from utils.general import sort_dict
 from utils.timelimit import run_with_limited_time, NO_RESULTS
 
 logging.basicConfig(filename=os.path.join(config.BASE_DIR, 'logs', 'exhaustive.log'), level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
 # logging.basicConfig(level=logging.INFO, format='[%(asctime)s][%(levelname)s] %(message)s', datefmt='%m-%d %H:%M')
 
-from analysis.sampling import hong_risk, sort_dict, calculate_risk_from_tuples, proportional_risk
 from risk_engine.exhaustive_search import calculate_all_execution_paths, hong_exhaustive_search
-from risk_engine.graph import RiskGraph, parse_JSON_file
+from risk_engine.graph import RiskGraph, parse_JSON_file, proportional_risk
 from utils.graph_sampling import ff_sample_subgraph
-
-# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json')
-# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json')
-# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.genersoft.wvp-1.5.10.RELEASE-reduced.json')
-# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'com.xenoamess.x8l-2.1.2-reduced.json')
-# FILE = os.path.join(config.BASE_DIR, 'reduced_callgraphs', 'me.gaigeshen.wechat.wechat-mp-1.2.0-SNAPSHOT-reduced.json')
 
 
 def remove_simple_loops(graph: RiskGraph):
@@ -46,7 +40,7 @@ def _get_project_name_from_path(path):
     return path.split('/')[-1]
 
 
-def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
+def runtime_analysis_for(json_callgraph, graphsizes, outdir, timeout_for_single_exhaustive_search=None, queue=None):
     list_of_lists = []
     callgraph = RiskGraph.create(*parse_JSON_file(json_callgraph), auto_update=False)
     if not callgraph.get_vulnerable_nodes():
@@ -69,7 +63,14 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
 
         subgraph = ff_sample_subgraph(callgraph, nodeset, min(n, len(callgraph.nodes)))
         nx.write_gexf(subgraph, os.path.join(project_out_dir, f'subgraph_{n}.gexf'))
-        all_execution_paths = calculate_all_execution_paths(subgraph)
+
+        if timeout_for_single_exhaustive_search:
+            try:
+                all_execution_paths = run_with_limited_time(calculate_all_execution_paths, (subgraph,), timeout=timeout_for_single_exhaustive_search, throws=True)[0]
+            except TimeoutError:
+                break
+        else:
+            all_execution_paths = calculate_all_execution_paths(subgraph)
         nodeset = nodeset.union(set(subgraph.nodes.keys()))
 
         all_paths_stop = time.perf_counter()
@@ -79,8 +80,8 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
         exhaustive_stop = time.perf_counter()
 
         subgraph.configure_for_model('d')
-        hong_risks = hong_risk(subgraph)
-        hong_risk_psv = list(sort_dict(calculate_risk_from_tuples(hong_risks, 1)).keys())
+        HARM_risks = HARM_risk(subgraph)
+        HARM_risk_psv = list(sort_dict(calculate_risk_from_tuples(HARM_risks, 1)).keys())
 
         hong_stop = time.perf_counter()
 
@@ -89,17 +90,17 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
 
         model_stop = time.perf_counter()
 
-        hong_rbo = rbo.RankingSimilarity(exhausive_risk_psv, hong_risk_psv).rbo()
+        HARM_rbo = rbo.RankingSimilarity(exhausive_risk_psv, HARM_risk_psv).rbo()
         model_rbo = rbo.RankingSimilarity(exhausive_risk_psv, model_risk_psv).rbo()
 
         finish_stop = time.perf_counter()
 
         record = [
             n,
-            hong_rbo,
+            HARM_rbo,
             model_rbo,
             exhausive_risk_psv,
-            hong_risk_psv,
+            HARM_risk_psv,
             model_risk_psv,
             all_paths_stop-start,
             exhaustive_stop - all_paths_stop,
@@ -110,7 +111,7 @@ def runtime_analysis_for(json_callgraph, graphsizes, outdir, queue=None):
         output_logger.info(record)
         list_of_lists.append(record)
         if queue:
-            queue.put([full_project_name, short_name, n, len(subgraph.edges), len(all_execution_paths), exhaustive_stop-start, model_rbo, hong_rbo])
+            queue.put([full_project_name, short_name, n, len(subgraph.edges), len(all_execution_paths), exhaustive_stop-start, model_rbo, HARM_rbo])
 
     df = pd.DataFrame(list_of_lists,
                       columns=['subgraph_size', 'hong_rbo', 'model_rbo', 'exhaustive_psv', 'hong_psv', 'model_psv',
@@ -151,9 +152,10 @@ def get_opts(argv):
     inputfile = None
     outputdir = None
     timeout = None
+    timeout_per_search = None
     scriptname = argv[0].split('/')[-1]
     try:
-        opts, args = getopt.getopt(argv[1:], 'hi:o:t:', ['ifile=', 'ofile=', 'timeout='])
+        opts, args = getopt.getopt(argv[1:], 'hi:o:t:', ['ifile=', 'ofile=', 'timeout=', 'searchtime='])
     except getopt.GetoptError:
         print(f'{scriptname} -t <timeout in seconds (optional, 5min default)> -i <inputfile (optional)> -o <outputdir from project root (optional)>')
         sys.exit(2)
@@ -167,13 +169,15 @@ def get_opts(argv):
             outputdir = os.path.join(config.BASE_DIR, arg)
         elif opt in ('-t', '--timeout'):
             timeout = float(arg)
+        elif opt == '--searchtime':
+            timeout_per_search = float(arg)
     logging.info('Input file is "{}"'.format(inputfile))
     logging.info('Output dir is "{}"'.format(outputdir))
-    return inputfile, outputdir, timeout
+    return inputfile, outputdir, timeout, timeout_per_search
 
 
 def main(argv):
-    provided_callgraph, outdir, timeout = get_opts(argv)
+    provided_callgraph, outdir, timeout, timeout_per_search = get_opts(argv)
     if not outdir:
         outdir = os.path.join(config.BASE_DIR, 'out', 'runtime_analysis')
     if not timeout:
@@ -190,9 +194,9 @@ def main(argv):
         runtime_analysis_for(os.path.join(config.BASE_DIR, 'reduced_callgraphs', provided_callgraph), graphsizes, outdir)
         return
 
-
     for file in glob.glob(os.path.join(config.BASE_DIR, callgraph_dir, '**', '*-reduced.json'), recursive=True):
-        results = run_with_limited_time(runtime_analysis_for, (os.path.join(config.BASE_DIR, callgraph_dir, file), graphsizes, outdir), timeout=timeout)
+        results = run_with_limited_time(runtime_analysis_for, (os.path.join(config.BASE_DIR, callgraph_dir, file), graphsizes, outdir),
+                                        {'timeout_for_single_exhaustive_search': timeout_per_search}, timeout=timeout)
         print(f'Results for {file}: ', results)
         if results:
             df_data += results

@@ -25,6 +25,7 @@ from cvss.cvss3 import round_up
 import numpy as np
 
 from utils import config
+from utils.general import sort_dict
 
 
 def parse_JSON_file(filename: str) -> Tuple[List, List, Dict, pd.DataFrame, Set]:
@@ -146,19 +147,13 @@ def get_total_vulnerability_coverage(reverse_graph: Graph, vulnerable_nodes: dic
     return reachable_nodes
 
 
-def _harmonic_mean(scores: list) -> float:
-    """
-    Not exactly harmonic mean but good enough
-    :param scores: List of scores in the range from [0, 10] to compute the harmonic mean of
-    :return: Harmonic mean of the list
-    """
-    scores = np.array(scores)
-    if np.sum(scores) == 0.0:
-        return 0.0
-    scores = scores[scores > 0.0]
-    if len(scores) == 1:
-        return scores[0]
-    return 20 * (0.5 - np.product(1-(scores/10))/np.sum(1-(scores/10)))
+def proportional_risk(sg: RiskGraph, risk_scores):
+    proportional_risks = {}
+    total_risk = sum(risk_scores.values())
+    proportional_cvss = lambda n, v: sg.get_severity_scores_for(n)[v] / sum(sg.get_severity_scores_for(n).values())
+    for vulnerability, nodes in sg.get_vulnerabilities().items():
+        proportional_risks[vulnerability] = sum([proportional_cvss(node, vulnerability) * risk_scores[node]/total_risk for node in nodes])
+    return sort_dict(proportional_risks)
 
 
 def _combine_scores(scores: list) -> float:

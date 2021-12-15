@@ -32,9 +32,7 @@ def main():
                 print(commit_hash, project_name, pom_path)
                 try:
                     repo_scanner = RepoAnalyser(project_name, commit_hash, pom_path)
-                    risk_scores = repo_scanner.run()
-                    # _update_risk_score(connection, repo_id, risk_score)
-                    risk_data.append((repo_id, commit_hash, project_name, risk_scores))
+                    repo_scanner.run()
                 except Exception as err:
                     exception_type = type(err).__name__
                     print('Error occured: {}'.format(exception_type))

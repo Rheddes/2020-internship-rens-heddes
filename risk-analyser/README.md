@@ -13,5 +13,5 @@ Predict risk form open source dependencies with vulnerabilities.
 ## Running the analyser
 
 ```bash
-python entrypoint.py
+python 1_generate_callgraphs.py
 ```
