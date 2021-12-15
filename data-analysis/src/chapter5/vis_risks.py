@@ -9,16 +9,9 @@ import ast
 from utils.config import BASE_DIR, SHORT_NAME_REGEX
 
 
-def plot_rbo(csv_path, output_path):
+def plot_rbo(csv_path, output_path, graphsize=100):
     df = pd.read_csv(csv_path)
-
-    for column in ['ex_path_vuln', 'ex_cen_vuln', 'hong_vuln', 'model_vuln']:
-        df[column] = df[column].apply(ast.literal_eval).values
-
-    df['HARM RBO'] = df.apply(lambda row: rbo.RankingSimilarity(row['ex_path_vuln'], row['hong_vuln']).rbo(), axis=1)
-    df['Model D RBO'] = df.apply(lambda row: rbo.RankingSimilarity(row['ex_path_vuln'], row['model_vuln']).rbo(),
-                                 axis=1)
-    df['short_name'] = df.apply(lambda row: re.split(SHORT_NAME_REGEX, row['callgraph'])[1], axis=1)
+    df = df.query(f'nodes == {graphsize}')
 
     df.plot(y=['HARM RBO', 'Model D RBO'], x='short_name', kind='bar')
     plt.title('Rank Biased Overlap for\n subgraphs of size 100')
@@ -29,11 +22,13 @@ def plot_rbo(csv_path, output_path):
     plt.show()
 
 
-def plot_rbo_for_graphsizes(csv_path, output_path):
+def plot_rbo_for_graphsizes(csv_path, output_path, project='wvp'):
     df = pd.read_csv(csv_path)
-
-    df.plot(y=['HARM', 'Model D'], x='subgraph_size')
+    df = df.query(f'short_name == "{project}"')
+    df.plot(y=['HARM RBO', 'Model D RBO'], x='nodes')
     plt.ylabel('Rank Biased Overlap of \n PLV compared with Exhaustive Search')
+    plt.ylim(0, 1)
     plt.xlabel('Subgraph size (nodes)')
+    plt.title(f'Rank Biased Overlap of PLV compared with\n Exhaustive Search for increasing graph sizes (project: {project})')
     plt.savefig(os.path.join(BASE_DIR, output_path, 'rbo_graphsize.pdf'))
     plt.show()

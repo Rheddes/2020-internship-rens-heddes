@@ -40,7 +40,7 @@ def centrality_correlations(csv_path, output_path):
                 r'\multicolumn{1}{|p{3cm}|}{\centering \textbf{Correlation/P-value} \\ \textbf{Co-reachability/P-value}}']
     )
     means = df.mean()
-    mean_row = r'\\textbf{{Mean}} & {} & {} & {} \\'.format(latex_float(means['vulnerability_density']),
+    mean_row = r'\textbf{{Mean}} & {} & {} & {} \\'.format(latex_float(means['vulnerability_density']),
                                                             latex_float(means['correlation_betweenness']),
                                                             latex_float(means['correlation_coreachability']))
     table_string = table_string.replace(r'\bottomrule', f'\\hline\n\\hline\n{mean_row}\n\\bottomrule')
