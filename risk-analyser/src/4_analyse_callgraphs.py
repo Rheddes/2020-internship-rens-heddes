@@ -202,7 +202,7 @@ def main(argv):
             df_data += results
 
     df = pd.DataFrame(df_data, columns=['full_name', 'short_name', 'nodes', 'edges', 'execution_paths', 'runtime', 'Model D RBO', 'HARM RBO'])
-    df.to_csv(os.path.join(outdir, 'runtimes_for_projects.csv'))
+    df.to_csv(os.path.join(outdir, 'runtimes_for_projects.csv'), index=False)
 
 
 if __name__ == '__main__':
