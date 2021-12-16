@@ -18,7 +18,7 @@ def plot_exhaustive_runtime_analysis(csv_path, output_path):
     plt.yscale('log')
     plt.ylabel('Runtime for exhaustive search (seconds)')
     plt.xlabel('Subgraph size (nodes)')
-    plt.title('Runtime for increasing graph sizes\n (10 min timeout per graphsize)')
+    plt.title('Runtime for increasing graph sizes\n (max. 30min for an exhaustive search)')
     plt.tight_layout()
     plt.savefig(os.path.join(BASE_DIR, output_path, 'runtime_all_projects.pdf'))
     plt.show()
