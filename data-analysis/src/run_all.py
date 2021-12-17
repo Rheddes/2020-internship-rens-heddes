@@ -31,20 +31,20 @@ def get_opts(argv):
 
 def main(argv):
     update_dataframe_path = get_opts(argv)
-    rcParams.update({'figure.autolayout': True})
-    history_analyser = VulnerabilityHistory(update_dataframe_path)
-    history_analyser.data_overview('./plots/chapter3')
-    history_analyser.scatter_dist('./plots/chapter3')
-    history_analyser.plot_for_single_repo('./plots/chapter3')
-
-    call_graph_properties(os.path.join(BASE_DIR, 'data', 'call_graph_stats.csv'), './plots/chapter5/runtime')
+    # rcParams.update({'figure.autolayout': True})
+    # history_analyser = VulnerabilityHistory(update_dataframe_path)
+    # history_analyser.data_overview('./plots/chapter3')
+    # history_analyser.scatter_dist('./plots/chapter3')
+    # history_analyser.plot_for_single_repo('./plots/chapter3')
+    #
+    # call_graph_properties(os.path.join(BASE_DIR, 'data', 'call_graph_stats.csv'), './plots/chapter5/runtime')
     centrality_correlations(os.path.join(BASE_DIR, 'data', 'correlation.csv'), './plots/chapter5')
-
-    plot_exhaustive_runtime_analysis(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/runtime')
-    plot_exhaustive_runtime_factors(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/runtime')
-
-    plot_rbo(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/risk')  # input variable --rbo ??
-    plot_rbo_for_graphsizes(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/risk')
+    #
+    # plot_exhaustive_runtime_analysis(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/runtime')
+    # plot_exhaustive_runtime_factors(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/runtime')
+    #
+    # plot_rbo(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/risk')  # input variable --rbo ??
+    # plot_rbo_for_graphsizes(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/risk')
 
 
 if __name__ == '__main__':

@@ -10,11 +10,16 @@ def latex_float(f):
     return f'${float_str}$'
 
 
+def latex_float_with_precision(precision):
+    format_string = f'${{:.{precision}f}}$'
+    return lambda f: format_string.format(f)
+
+
 def latex_percentage(p):
     return '${:.1%}$'.format(p).replace('%', r'\%')
 
 
 def process_and_write_latex_table(table_string, output_path):
     with open(output_path, 'w') as f:
-        f.write(table_string.replace(r'\toprule', r'\hline').replace(r'\midrule', '\\hline\n\\hline').replace(
-            r'\bottomrule', r'\hline'))
+        f.write(table_string)
+        # f.write(table_string.replace(r'\toprule', r'\hline').replace(r'\midrule', '\\hline\n\\hline').replace(r'\bottomrule', r'\hline'))

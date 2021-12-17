@@ -67,21 +67,21 @@ class VulnerabilityHistory:
             ['\mu\pm\sigma', df.log_update_delay_Z.between(-stdev, stdev).mean()],
             ['\mu\pm2\sigma', df.log_update_delay_Z.between(-2 * stdev, 2 * stdev).mean()],
             ['\mu\pm3\sigma', df.log_update_delay_Z.between(-3 * stdev, 3 * stdev).mean()],
-        ], columns=['Range', 'Percentage of data within range'])
+        ], columns=['range', 'percentage of data within range'])
         table_string = df.to_latex(index=False, escape=False,
-                    column_format='|l|r|', label='tab:normality_stdev', formatters=[latex_int, latex_percentage],
+                    column_format=r'@{}lr@{}', label='tab:normality_stdev', formatters=[latex_int, latex_percentage],
                     caption='Percentage of datapoints that lie within 1, 2 \& 3 standard deviations from the mean in the observed distribution',
-                    header=[r'\textbf{Range}', r'\textbf{Percentage of data within range}'])
+                    header=['range', 'percentage of data within range'])
         process_and_write_latex_table(table_string, os.path.join(BASE_DIR, output_path, 'datapoints_in_standarddeviations.tex'))
 
     def data_overview(self, output_path):
         table_data = self.raw_df.groupby('repo_cve').agg({'repo_id': 'nunique', 'is_fix_update': 'sum'}).astype({'is_fix_update': 'int'}).sort_values(by='repo_id', ascending=False).reset_index()
         table_string = table_data.to_latex(
                       index=False, escape=False,
-                      column_format='|l|r|r|', label='tab:scanned_repos',
+                      column_format=r'@{}lrr@{}', label='tab:scanned_repos',
                       formatters=[None, latex_int, latex_int],
                       caption='The number of scanned repositories per vulnerability',
-                      header=[r'\textbf{CVE}', r'\textbf{Found repositories}', r'\textbf{Found fix updates for}'])
+                      header=['vulnerability', 'found repositories', 'found fix updates for'])
         process_and_write_latex_table(table_string, os.path.join(BASE_DIR, output_path, 'scanned_repos.tex'))
 
     def scatter_dist(self, output_path):
@@ -194,9 +194,9 @@ class VulnerabilityHistory:
                  '50th percentile',
                  '75th percentile',
                  'maximum']
-        table_string = repo_df.update_delay.describe().set_axis(index).to_latex(escape=False, column_format='|l|r|',
-                            formatters=[latex_float],
-                            header=[r'\textit{update delay in days}'])
+        table_string = repo_df.update_delay.describe().set_axis(index).to_frame().reset_index().to_latex(escape=False, column_format=r'@{}lr@{}',
+                            formatters=[None, latex_float], index=False,
+                            header=['metric', 'update delay in days'])
         process_and_write_latex_table(table_string, os.path.join(repo_output_dir, 'data_description.tex'))
 
         return repo_df
