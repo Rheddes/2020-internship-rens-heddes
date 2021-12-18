@@ -86,6 +86,7 @@ class VulnerabilityHistory:
 
     def scatter_dist(self, output_path):
         df = self.df
+        df['Uses vulnerable code'] = df.uses_vulnerable_code.astype(bool)
         fig, axs = plt.subplots(1, 2, figsize=(10, 6))
         sns.histplot(data=df, x='log_update_delay_Z', bins=65, ax=axs[0])
         axs[0].set_xlabel('Standardised log update delay')
@@ -105,7 +106,7 @@ class VulnerabilityHistory:
 
         with sns.color_palette(['mediumaquamarine', 'red']):
             fig, ax = plt.subplots(figsize=(11.7, 8.27))
-            g = sns.barplot(data=df_fix_updates, ax=ax, x='unique_name', y='log_update_delay_Z', hue='uses_vulnerable_code', dodge=False, ci=False)
+            g = sns.barplot(data=df_fix_updates, ax=ax, x='unique_name', y='log_update_delay_Z', hue='Uses vulnerable code', dodge=False, ci=False)
             g.set_xticklabels(g.get_xticklabels(), rotation=90)  # , horizontalalignment='right')
             legend = g.legend()
             legend.set_title('Uses vulnerable code')
@@ -119,6 +120,13 @@ class VulnerabilityHistory:
             plt.savefig(os.path.join(BASE_DIR, output_path, 'fix_update_delays.pdf'))
             plt.show()
 
+        sns.boxplot(data=df, x='Uses vulnerable code', y='log_update_delay_Z')
+        plt.title('Effect of using vulnerable code on fix update delay')
+        plt.xlabel('Vulnerable code is reachable by project')
+        plt.ylabel('Standardised log update delay')
+        plt.savefig(os.path.join(BASE_DIR, output_path, 'uses_vulnerable_code_boxplot.pdf'))
+        plt.show()
+
         self.values_within_standard_deviation_table(df, output_path)
 
         ensure_path(os.path.join(BASE_DIR, output_path, 'fix_update_delays'))
@@ -127,7 +135,7 @@ class VulnerabilityHistory:
             if df_cve.shape[0] < 20:
                 logging.info('Skipping on {} because low number of updates'.format(cve))
                 continue
-            g = sns.barplot(data=df_cve, x='short_name', y='log_update_delay_Z', hue='uses_vulnerable_code',
+            g = sns.barplot(data=df_cve, x='short_name', y='log_update_delay_Z', hue='Uses vulnerable code',
                             dodge=False, ci=False)
             g.set_xticklabels(g.get_xticklabels(), rotation=90)  # , horizontalalignment='right')
             plt.xlabel('Repository')
@@ -195,7 +203,7 @@ class VulnerabilityHistory:
                  '75th percentile',
                  'maximum']
         table_string = repo_df.update_delay.describe().set_axis(index).to_frame().reset_index().to_latex(escape=False, column_format=r'@{}lr@{}',
-                            formatters=[None, latex_float], index=False,
+                            formatters=[None, latex_int], index=False,
                             header=['metric', 'update delay in days'])
         process_and_write_latex_table(table_string, os.path.join(repo_output_dir, 'data_description.tex'))
 

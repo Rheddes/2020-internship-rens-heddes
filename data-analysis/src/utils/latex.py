@@ -1,5 +1,5 @@
 def latex_int(i):
-    return f'${i}$'
+    return f'${int(i)}$'
 
 
 def latex_float(f):

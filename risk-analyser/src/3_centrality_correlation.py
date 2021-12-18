@@ -61,7 +61,7 @@ def calculate_correlations(g, name, n=100):
         except TimeoutError:
             pass
     if all_execution_paths is None or subgraph is None:
-        return (0, 0), (0, 0)
+        return False
 
     centralities = calculate_centralities(subgraph, all_execution_paths)
     exhaustive, betweenness, coreachability = map(compose(np.array, list), zip(*centralities.values()))
@@ -81,11 +81,12 @@ def main():
             print('[{}] Skipping: {}'.format(datetime.now(), name))
             continue
 
-        (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph, name)
+        correlations = calculate_correlations(graph, name)
         retries = 0
-        while retries < 50 and (correlation_between < 0 or correlation_co < 0):
-            (correlation_between, p_value_between), (correlation_co, p_value_co) = calculate_correlations(graph, name)
+        while retries < 50 and correlations is False:
+            correlations = calculate_correlations(graph, name)
             retries += 1
+        (correlation_between, p_value_between), (correlation_co, p_value_co) = correlations
 
         vulnerability_density = len(graph.get_vulnerable_nodes()) / len(graph)
         shortname = re.split(r'([a-zA-Z\-]+)-[0-9\.a-zA-Z\-]+(?=-reduced\.json)', name)[1]
