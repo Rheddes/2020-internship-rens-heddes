@@ -9,7 +9,7 @@ import numpy as np
 from scipy import stats
 
 from utils.config import BASE_DIR, get_db_connection, ensure_path
-from utils.latex import latex_percentage, latex_float, latex_int, process_and_write_latex_table
+from utils.latex import latex_percentage, latex_float, latex_int, process_and_write_latex_table, latex_math
 
 
 class VulnerabilityHistory:
@@ -69,7 +69,7 @@ class VulnerabilityHistory:
             ['\mu\pm3\sigma', df.log_update_delay_Z.between(-3 * stdev, 3 * stdev).mean()],
         ], columns=['range', 'percentage of data within range'])
         table_string = df.to_latex(index=False, escape=False,
-                    column_format=r'@{}lr@{}', label='tab:normality_stdev', formatters=[latex_int, latex_percentage],
+                    column_format=r'@{}lr@{}', label='tab:normality_stdev', formatters=[latex_math, latex_percentage],
                     caption='Percentage of datapoints that lie within 1, 2 \& 3 standard deviations from the mean in the observed distribution',
                     header=['range', 'percentage of data within range'])
         process_and_write_latex_table(table_string, os.path.join(BASE_DIR, output_path, 'datapoints_in_standarddeviations.tex'))

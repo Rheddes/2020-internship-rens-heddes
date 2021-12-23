@@ -43,7 +43,7 @@ def main(argv):
     plot_exhaustive_runtime_analysis(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/runtime')
     plot_exhaustive_runtime_factors(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/runtime')
 
-    plot_rbo(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/risk')  # input variable --rbo ??
+    plot_rbo(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects_100_nodes.csv'), './plots/chapter5/risk')  # input variable --rbo ??
     plot_rbo_for_graphsizes(os.path.join(BASE_DIR, 'data', 'runtimes_for_projects.csv'), './plots/chapter5/risk')
 
 

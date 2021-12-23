@@ -14,6 +14,7 @@ def plot_rbo(csv_path, output_path, graphsize=100):
     df = df.query(f'nodes == {graphsize}')
 
     df.plot(y=['HARM RBO', 'Model D RBO'], x='short_name', kind='bar')
+    plt.legend(loc='lower right')
     plt.title('Rank Biased Overlap for\n subgraphs of size 100')
     plt.ylabel('Rank Biased Overlap of \n PLV compared with Exhaustive Search')
     plt.xlabel('Project')

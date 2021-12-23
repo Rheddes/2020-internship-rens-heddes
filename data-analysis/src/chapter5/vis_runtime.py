@@ -24,15 +24,15 @@ def plot_exhaustive_runtime_analysis(csv_path, output_path):
     plt.show()
 
     fig, ax = plt.subplots(figsize=(9, 5))
-    completed_projects = df.query(f'nodes == {df.nodes.max()}').full_name
-    for key, group in df[~df.full_name.isin(completed_projects)].groupby('short_name'):
+    fast_projects = df.query(f'nodes == {df.nodes.max()} and runtime < 100').full_name
+    for key, group in df[~df.full_name.isin(fast_projects)].groupby('short_name'):
         group.plot(ax=ax, x='nodes', y='runtime', label=key)
     fig.legend(loc='upper left', bbox_to_anchor=(1, 1))
     plt.yscale('log')
     plt.xlim(0, df.nodes.max())
     plt.ylabel('Runtime for exhaustive search (seconds)')
     plt.xlabel('Subgraph size (nodes)')
-    plt.title('Runtime for increasing graph sizes\n for projects which reached 15 minute time limit')
+    plt.title('Runtime for increasing graph sizes\n for projects with significant runtime increase')
     plt.tight_layout()
     plt.savefig(os.path.join(BASE_DIR, output_path, 'runtime_timedout.pdf'))
     plt.show()
@@ -42,8 +42,8 @@ def plot_exhaustive_runtime_factors(path_to_csv, output_path):
     df = pd.read_csv(path_to_csv)
     df['density'] = df.edges / df.nodes
 
-    completed_projects = df.query(f'nodes == {df.nodes.max()}').full_name
-    df = df[~df.full_name.isin(completed_projects)]
+    fast_projects = df.query(f'nodes == {df.nodes.max()} and runtime < 100').full_name
+    df = df[~df.full_name.isin(fast_projects)]
 
     colors = {project: plt.cm.tab10(i) for i, project in enumerate(df.short_name.unique())}
 

@@ -2,6 +2,10 @@ def latex_int(i):
     return f'${int(i)}$'
 
 
+def latex_math(raw):
+    return f'${raw}$'
+
+
 def latex_float(f):
     float_str = '{0:.2e}'.format(f) if f < 0.01 else '{:.2f}'.format(f)
     if 'e' in float_str:

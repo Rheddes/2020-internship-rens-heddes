@@ -1,0 +1,24 @@
+full_name,short_name,nodes,edges,execution_paths,runtime,Model D RBO,HARM RBO
+me.gaigeshen.wechat.wechat-mp-1.2.0-SNAPSHOT-reduced.json,wechat-mp,100,727,3,0.1592642850009724,0.5,0.5
+com.swiftmq.swiftmq-client-12.1.0-reduced.json,swiftmq-client,100,544,86,0.9526425040021422,1.0,1.0
+net.optionfactory.hibernate-json-3.0-SNAPSHOT-reduced.json,hibernate-json,100,607,8,33.27075729799981,1.0,0.7225011870845205
+org.testingisdocumenting.webtau.webtau-http-1.22-SNAPSHOT-reduced.json,webtau-http,100,252,6,0.155509122996591,1.0,1.0
+org.testingisdocumenting.webtau.webtau-utils-1.22-SNAPSHOT-reduced.json,webtau-utils,100,173,6,0.1535103099959087,1.0,1.0
+io.gazetteer.gazetteer-tiles-1.0-SNAPSHOT-reduced.json,gazetteer-tiles,100,1469,3,12.141309692000505,1.0,0.5333333333333333
+org.testingisdocumenting.webtau.webtau-report-1.22-SNAPSHOT-reduced.json,webtau-report,100,486,6,0.1596928549988661,0.4166666666666666,0.4166666666666666
+org.testingisdocumenting.webtau.webtau-java-runner-1.22-SNAPSHOT-reduced.json,webtau-java-runner,100,405,6,0.1562119549998897,1.0,1.0
+org.testingisdocumenting.webtau.webtau-console-1.22-SNAPSHOT-reduced.json,webtau-console,100,381,6,0.1566722889983793,1.0,1.0
+pl.edu.icm.unity.unity-types-api-3.3.0-SNAPSHOT-reduced.json,unity-types-api,100,218,3,0.1601515390066197,1.0,1.0
+xyz.erupt.zeta-api-0.3.2-reduced.json,zeta-api,100,522,63,0.1888888350003981,1.0,1.0
+com.genersoft.wvp-1.5.10.RELEASE-reduced.json,wvp,100,121,87,0.5694666970011895,0.5140192470273197,0.4560774874726569
+org.testingisdocumenting.webtau.webtau-config-1.22-SNAPSHOT-reduced.json,webtau-config,100,203,6,0.1550599639958818,1.0,1.0
+org.testingisdocumenting.webtau.webtau-core-1.22-SNAPSHOT-reduced.json,webtau-core,100,528,6,0.1685775200021453,1.0,1.0
+org.testingisdocumenting.webtau.webtau-cli-1.22-SNAPSHOT-reduced.json,webtau-cli,100,1360,6,2.8562679210008355,1.0,1.0
+org.testingisdocumenting.webtau.webtau-open-api-1.22-SNAPSHOT-reduced.json,webtau-open-api,100,682,6,7.217803534999803,1.0,0.9166666666666666
+com.disneystreaming.pg2k4j.pg2k4j-1.0.2-reduced.json,pg2k4j,100,472,8,0.2646965790045215,0.8089137487421801,0.5782403326520973
+pl.dmichalski.spring-boot-swing-reservations-1.0-reduced.json,spring-boot-swing-reservations,100,335,1,0.1499566540005616,1.0,1.0
+com.flipkart.zjsonpatch.zjsonpatch-0.4.10-SNAPSHOT-reduced.json,zjsonpatch,100,200,7,2.1095650739967824,1.0,0.8253887452416864
+io.gazetteer.gazetteer-cli-1.0-SNAPSHOT-reduced.json,gazetteer-cli,100,1607,3,150.3754766390011,1.0,0.69375
+com.xenoamess.x8l-2.1.2-reduced.json,x8l,100,201,179,0.1549000419981894,1.0,1.0
+org.testingisdocumenting.webtau.webtau-browser-1.22-SNAPSHOT-reduced.json,webtau-browser,100,876,6,1646.0401843970003,1.0,0.9166666666666666
+org.testingisdocumenting.webtau.webtau-cache-1.22-SNAPSHOT-reduced.json,webtau-cache,100,637,6,0.1617314690010971,1.0,1.0
