@@ -1,0 +1,9 @@
+version: '3'
+services:
+    plot_figures_and_tables:
+        build:
+            context: .
+            dockerfile: docker/Dockerfile
+        image: rheddes/figure_and_tables
+        volumes:
+          - './plots:/home/runner/plots'
