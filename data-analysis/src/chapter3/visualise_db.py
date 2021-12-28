@@ -104,22 +104,6 @@ class VulnerabilityHistory:
 
         df_fix_updates = df.query('is_fix_update == 1 and commit_date > disclosure_date').sort_values(by='log_update_delay_Z')
 
-        with sns.color_palette(['mediumaquamarine', 'red']):
-            fig, ax = plt.subplots(figsize=(11.7, 8.27))
-            g = sns.barplot(data=df_fix_updates, ax=ax, x='unique_name', y='log_update_delay_Z', hue='Uses vulnerable code', dodge=False, ci=False)
-            g.set_xticklabels(g.get_xticklabels(), rotation=90)  # , horizontalalignment='right')
-            legend = g.legend()
-            legend.set_title('Uses vulnerable code')
-            for t, l in zip(legend.texts, ('False', 'True')):
-                t.set_text(l)
-            # g.legend_.remove()
-            plt.xlabel('Repository')
-            plt.ylabel('Normalized update delay deviation from mean')
-            plt.title('Distribution of normalised fix update delay deviations')
-            g.set_xticklabels([])
-            plt.savefig(os.path.join(BASE_DIR, output_path, 'fix_update_delays.pdf'))
-            plt.show()
-
         sns.boxplot(data=df, x='Uses vulnerable code', y='log_update_delay_Z')
         plt.title('Effect of using vulnerable code on fix update delay')
         plt.xlabel('Vulnerable code is reachable by project')
@@ -128,25 +112,6 @@ class VulnerabilityHistory:
         plt.show()
 
         self.values_within_standard_deviation_table(df, output_path)
-
-        ensure_path(os.path.join(BASE_DIR, output_path, 'fix_update_delays'))
-        for cve in df_fix_updates['cve'].unique():
-            df_cve = df_fix_updates[df_fix_updates['cve'] == cve]
-            if df_cve.shape[0] < 20:
-                logging.info('Skipping on {} because low number of updates'.format(cve))
-                continue
-            g = sns.barplot(data=df_cve, x='short_name', y='log_update_delay_Z', hue='Uses vulnerable code',
-                            dodge=False, ci=False)
-            g.set_xticklabels(g.get_xticklabels(), rotation=90)  # , horizontalalignment='right')
-            plt.xlabel('Repository')
-            plt.ylabel('Normalized update delay deviation from mean')
-            plt.title('Distribution of normalised fix update delay deviations\n for {}'.format(cve))
-            vulnerable_short_names = df_cve[df_cve['uses_vulnerable_code'] == 1]['short_name'].to_list()
-            for n, label in enumerate(g.get_xticklabels()):
-                if label.get_text() not in vulnerable_short_names:
-                    label.set_visible(False)
-            plt.savefig(os.path.join(BASE_DIR, output_path, 'fix_update_delays', '{}.pdf'.format(cve)))
-            plt.show()
 
         df['cvss_buckets'] = df['v3BaseScore'].fillna(0.0).round().astype(int)
         sns.boxplot(data=df, x='cvss_buckets', y='log_update_delay_Z', order=range(0, 10))
