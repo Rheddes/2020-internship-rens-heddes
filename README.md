@@ -13,3 +13,9 @@ pip install -r requirements.txt
 cd src
 python run_all.py -p "./data/update_data.p"
 ```
+
+## Or use docker-compose
+```bash
+cd data-analysis
+docker compose up
+```
