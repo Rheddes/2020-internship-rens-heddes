@@ -34,7 +34,7 @@ SQLAlchemy==1.4.9
 statsmodels==0.12.2
 tld==0.12.5
 tqdm==4.60.0
-urllib3==1.26.4
+urllib3==1.26.5
 
 python-dotenv~=0.19.2
 rbo~=0.1.2
