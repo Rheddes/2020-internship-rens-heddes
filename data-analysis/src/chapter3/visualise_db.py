@@ -100,7 +100,7 @@ class VulnerabilityHistory:
         axs[1].set_title('Cumulative distribution of standardised\nlog update delays')
         axs[1].set_xlabel('Standardised log update delay')
         plt.savefig(os.path.join(BASE_DIR, output_path, 'all_update_delays.pdf'))
-        plt.show()
+        plt.clf()
 
         df_fix_updates = df.query('is_fix_update == 1 and commit_date > disclosure_date').sort_values(by='log_update_delay_Z')
 
@@ -109,7 +109,7 @@ class VulnerabilityHistory:
         plt.xlabel('Vulnerable code is reachable by project')
         plt.ylabel('Standardised log update delay')
         plt.savefig(os.path.join(BASE_DIR, output_path, 'uses_vulnerable_code_boxplot.pdf'))
-        plt.show()
+        plt.clf()
 
         self.values_within_standard_deviation_table(df, output_path)
 
@@ -119,7 +119,7 @@ class VulnerabilityHistory:
         plt.xlabel('CVSS score (rounded to nearest integer)')
         plt.ylabel('Standardised log update delay')
         plt.savefig(os.path.join(BASE_DIR, output_path, 'cvss_update_delays.pdf'))
-        plt.show()
+        plt.clf()
 
     def plot_for_single_repo(self, output_path, repo_id=745):
         """
@@ -138,13 +138,13 @@ class VulnerabilityHistory:
         # plt.xlim(0, 800)
         plt.title('Absolute update delay (in number of days)\n for "Apache/Tika"')
         plt.savefig(os.path.join(repo_output_dir, 'absolute_apache_tika.pdf'))
-        plt.show()
+        plt.clf()
 
         sns.distplot(repo_df['log_update_delay'], fit=stats.norm, bins=30)
         plt.xlabel('Log(Update delay in days)')
         plt.title('Probability density estimation for\nlog of update delay for "Apache/Tika"')
         plt.savefig(os.path.join(repo_output_dir, 'log_apache_tika_with_fit.pdf'))
-        plt.show()
+        plt.clf()
 
         lud_mean = repo_df.log_update_delay.mean()
         lud_stdev = repo_df.log_update_delay.std()
@@ -157,7 +157,7 @@ class VulnerabilityHistory:
         plt.title('Cumulative distribution of log update delays')
         plt.xlabel('Log update delay')
         plt.savefig(os.path.join(repo_output_dir, 'cdf_with_fit.pdf'))
-        plt.show()
+        plt.clf()
 
         index = ['count',
                  'mean',

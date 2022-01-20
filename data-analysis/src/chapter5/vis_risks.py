@@ -20,7 +20,7 @@ def plot_rbo(csv_path, output_path, graphsize=100):
     plt.xlabel('Project')
     plt.tight_layout()
     plt.savefig(os.path.join(BASE_DIR, output_path, f'results_100.pdf'))
-    plt.show()
+    plt.clf()
 
 
 def plot_rbo_for_graphsizes(csv_path, output_path, project='wvp'):
@@ -32,4 +32,4 @@ def plot_rbo_for_graphsizes(csv_path, output_path, project='wvp'):
     plt.xlabel('Subgraph size (nodes)')
     plt.title(f'Rank Biased Overlap of PLV compared with\n Exhaustive Search for increasing graph sizes (project: {project})')
     plt.savefig(os.path.join(BASE_DIR, output_path, 'rbo_graphsize.pdf'))
-    plt.show()
+    plt.clf()

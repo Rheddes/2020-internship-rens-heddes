@@ -21,7 +21,7 @@ def plot_exhaustive_runtime_analysis(csv_path, output_path):
     plt.title('Runtime for increasing graph sizes\n (max. 30min for an exhaustive search)')
     plt.tight_layout()
     plt.savefig(os.path.join(BASE_DIR, output_path, 'runtime_all_projects.pdf'))
-    plt.show()
+    plt.clf()
 
     fig, ax = plt.subplots(figsize=(9, 5))
     fast_projects = df.query(f'nodes == {df.nodes.max()} and runtime < 100').full_name
@@ -35,7 +35,7 @@ def plot_exhaustive_runtime_analysis(csv_path, output_path):
     plt.title('Runtime for increasing graph sizes\n for projects with significant runtime increase')
     plt.tight_layout()
     plt.savefig(os.path.join(BASE_DIR, output_path, 'runtime_timedout.pdf'))
-    plt.show()
+    plt.clf()
 
 
 def plot_exhaustive_runtime_factors(path_to_csv, output_path):
@@ -58,7 +58,7 @@ def plot_exhaustive_runtime_factors(path_to_csv, output_path):
     plt.title('Affect of edge over node density on runtime\nfor exhaustive search')
     plt.tight_layout()
     plt.savefig(os.path.join(BASE_DIR, output_path, 'runtime_density.pdf'))
-    plt.show()
+    plt.clf()
 
     fig, ax = plt.subplots(figsize=(9, 5))
     for key, group in df.groupby('short_name'):
@@ -69,5 +69,5 @@ def plot_exhaustive_runtime_factors(path_to_csv, output_path):
     plt.title('Number of attack paths found for increasing graph sizes')
     plt.tight_layout()
     plt.savefig(os.path.join(BASE_DIR, output_path, 'paths.pdf'))
-    plt.show()
+    plt.clf()
 
